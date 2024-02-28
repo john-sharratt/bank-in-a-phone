@@ -1,10 +1,9 @@
 [package]
-name = "eframe_template"
+name = "bank-in-a-phone"
 version = "0.1.0"
-authors = ["Emil Ernerfeldt <emil.ernerfeldt@gmail.com>"]
+authors = ["John Sharratt <johnathan.sharratt@gmail.com>", "Emil Ernerfeldt <emil.ernerfeldt@gmail.com>"]
 edition = "2021"
 rust-version = "1.72"
-
 
 [dependencies]
 egui = "0.26.0"
