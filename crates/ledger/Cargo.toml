@@ -1,0 +1,13 @@
+[package]
+name = "biap-ledger"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+log.workspace = true
+env_logger.workspace = true
+serde.workspace = true
+anyhow.workspace = true
