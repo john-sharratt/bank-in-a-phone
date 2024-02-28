@@ -1,6 +1,6 @@
 # Bank-in-a-phone
 
-![Bank in a Phone](bank_in_a_phone.jpg)
+![Bank in a Phone](assets/bank_in_a_phone.jpg)
 
 What if?
 
