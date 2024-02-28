@@ -1,10 +1,14 @@
 # Bank-in-a-phone
 
+![Bank in a Phone](bank_in_a_phone.jpg)
+
 What if?
 
 - What if a bank could run almost entirely within a phone?
 - What if the state was fully immutable and hence can not be destroyed?
-- What if rebuilding the bank if attacked 
+- What if rebuilding the bank from scratch is easier then trying to fix it?
+
+Immutability Superpowers!!!
 
 # Getting Started
 
