@@ -1,6 +1,6 @@
 {
-  "name": "egui Template PWA",
-  "short_name": "egui-template-pwa",
+  "name": "Bank-in-a-Phone",
+  "short_name": "bank-in-a-phone-pwa",
   "icons": [
     {
       "src": "./icon-256.png",

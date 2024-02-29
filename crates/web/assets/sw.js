@@ -1,4 +1,4 @@
-var cacheName = 'egui-template-pwa';
+var cacheName = 'bank-in-a-phone-pwa';
 var filesToCache = [
   './',
   './index.html',

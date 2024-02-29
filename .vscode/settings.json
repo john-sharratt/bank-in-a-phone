@@ -1,0 +1,20 @@
+{
+    "editor.formatOnSave": true,
+    "editor.cursorBlinking": "smooth",
+    "editor.cursorSmoothCaretAnimation": "on",
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.autopep8"
+    },
+    "python.formatting.provider": "none",
+    "protoc": {
+        "path": "/path/to/protoc",
+        "compile_on_save": false,
+        "options": [
+            "--proto_path=protos/v3",
+            "--proto_path=protos/v2",
+            "--proto_path=${workspaceRoot}/proto",
+            "--proto_path=${env.GOPATH}/src",
+            "--java_out=gen/java"
+        ]
+    }
+}
