@@ -39,20 +39,18 @@ impl Display for AccountType {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum AccountRef {
-    Local {
-        account: AccountType,
-    },
-    Foreign {
-        username: String,
-        account: AccountType,
-    },
+    Local { account: AccountType },
+    Foreign { bank: String, account: AccountType },
 }
 
 impl Display for AccountRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             AccountRef::Local { account } => write!(f, "{account}"),
-            AccountRef::Foreign { username, account } => write!(f, "{account}({username})"),
+            AccountRef::Foreign {
+                bank: username,
+                account,
+            } => write!(f, "{account}({username})"),
         }
     }
 }

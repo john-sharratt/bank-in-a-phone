@@ -11,7 +11,7 @@ impl Ledger {
         self.add(LedgerType::Transfer {
             transaction: Transaction {
                 from: AccountRef::Foreign {
-                    username: "John".to_string(),
+                    bank: "John".to_string(),
                     account: AccountType::Printer,
                 },
                 to: AccountRef::Local {

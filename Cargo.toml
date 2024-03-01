@@ -24,6 +24,7 @@ log = { version = "0.4" }
 serde = { version = "1", features = ["derive"] }
 env_logger = { version = "0.10" }
 wasm-bindgen-futures = { version = "0.4" }
+web-sys = { version = "0.3.68", features = ["HtmlAudioElement"] }
 anyhow = { version = "1.0.80" }
 include_dir = { version = "0.7.3" }
 hyper = { version = "1.2.0" }
@@ -42,6 +43,7 @@ clap-verbosity-flag = { version = "2.2.0" }
 ws_stream_wasm = { version = "0.7.4" }
 pharos = { version = "0.5.3" }
 wasm-bindgen = { version = "0.2.91" }
+sha256 = { version = "1.5.0", default-features = false }
 tokio = { version = "1.36.0", default-features = false, features = [
     "rt-multi-thread",
     "macros",

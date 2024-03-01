@@ -1,7 +1,7 @@
 use egui::{Align2, Color32, Margin, RichText, Rounding, Stroke, Vec2, Widget};
 use immutable_bank_model::{account::AccountType, ledger_type::LedgerType};
 
-use crate::LocalApp;
+use crate::{state::local_app::FocusOn, LocalApp};
 
 use super::Mode;
 
@@ -13,10 +13,7 @@ impl LocalApp {
             .outer_margin(Margin::same(3.0))
             .stroke(Stroke::new(1.0, Color32::DARK_GRAY))
             .show(ui, |ui| {
-                let account = self
-                    .bank
-                    .as_mut()
-                    .and_then(|bank| bank.accounts.get_mut(index));
+                let account = self.bank_mut().and_then(|s| s.accounts.get_mut(index));
                 let account = match account {
                     Some(account) => account,
                     None => return,
@@ -46,7 +43,10 @@ impl LocalApp {
                             self.from_account = AccountType::Wallet;
                             self.to_account = AccountType::Savings;
                             self.to_user = Default::default();
+                            self.description.clear();
                             self.mode = Mode::MoveMoney;
+                            self.pending.take();
+                            self.focus_on.replace(FocusOn::Amount);
                         }
                     }
 
@@ -55,7 +55,10 @@ impl LocalApp {
                             self.from_account = AccountType::Wallet;
                             self.to_account = AccountType::Wallet;
                             self.to_user = Default::default();
+                            self.description.clear();
                             self.mode = Mode::SendMoney;
+                            self.pending.take();
+                            self.focus_on.replace(FocusOn::Amount);
                         }
                     }
                 });
@@ -63,17 +66,17 @@ impl LocalApp {
     }
 
     pub fn render_bank_summary(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        egui::Window::new("My Bank")
+        let name = self
+            .session
+            .clone()
+            .unwrap_or_else(|| "My Bank".to_string());
+        egui::Window::new(name)
             .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
             .default_size(Vec2::new(200.0, 600.0))
             .resizable(false)
             .collapsible(false)
             .show(ui.ctx(), |ui| {
-                let num_accounts = self
-                    .bank
-                    .as_ref()
-                    .map(|b| b.accounts.len())
-                    .unwrap_or_default();
+                let num_accounts = self.bank().map(|b| b.accounts.len()).unwrap_or_default();
                 for index in 0..num_accounts {
                     self.render_account(ui, index);
                 }
@@ -97,11 +100,7 @@ impl LocalApp {
                             .vscroll(true)
                             .max_height(200.0)
                             .show(ui, |ui| {
-                                let me = self
-                                    .bank
-                                    .as_ref()
-                                    .map(|b| b.owner.clone())
-                                    .unwrap_or_default();
+                                let me = self.bank().map(|s| s.owner.clone()).unwrap_or_default();
                                 for transaction in
                                     self.ledger.entries.iter().filter_map(|f| match &f.entry {
                                         LedgerType::Transfer {

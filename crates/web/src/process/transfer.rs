@@ -1,3 +1,4 @@
+use egui::Ui;
 use immutable_bank_model::{
     account::AccountRef, ledger_type::LedgerType, transaction::Transaction,
 };
@@ -5,8 +6,8 @@ use immutable_bank_model::{
 use crate::LocalApp;
 
 impl LocalApp {
-    pub fn transfer(&mut self, frame: &mut eframe::Frame) {
-        let local_bank = match self.bank.as_ref().map(|b| b.owner.clone()) {
+    pub fn transfer(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
+        let local_bank = match self.bank().map(|s| s.owner.clone()) {
             Some(a) => a,
             None => {
                 return;
@@ -18,8 +19,15 @@ impl LocalApp {
                 from: AccountRef::Local {
                     account: self.from_account,
                 },
-                to: AccountRef::Local {
-                    account: self.to_account,
+                to: if self.to_user.is_empty() {
+                    AccountRef::Local {
+                        account: self.to_account,
+                    }
+                } else {
+                    AccountRef::Foreign {
+                        bank: self.to_user.clone(),
+                        account: self.to_account,
+                    }
                 },
                 description: self.description.clone(),
                 amount_cents: self.transfer_amount,
@@ -27,8 +35,8 @@ impl LocalApp {
         };
 
         if let Err(err) = self.start_entry(transfer) {
-            self.show_error("Failed to create new bank", err);
-            self.bank.take();
+            self.show_error(ui, "Failed to transfer funds", err);
+            self.session.take();
             return;
         }
 

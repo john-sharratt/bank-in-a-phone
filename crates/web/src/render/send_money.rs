@@ -1,12 +1,12 @@
-use egui::{Align2, RichText, TextEdit, Vec2, Widget};
+use egui::{Align2, Key, RichText, TextEdit, Vec2, Widget};
 
-use crate::state::local_app::LocalApp;
+use crate::state::local_app::{FocusOn, LocalApp};
 
 use super::Mode;
 
 impl LocalApp {
     pub fn render_send_money(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
-        self.try_finish(|app| {
+        self.try_finish(ui, |app| {
             app.mode = Mode::Summary;
         });
 
@@ -19,10 +19,14 @@ impl LocalApp {
             .collapsible(false)
             .open(&mut is_open)
             .show(ui.ctx(), |ui| {
+                let mut enter_pressed = ui.ctx().input_mut(|input| input.key_pressed(Key::Enter));
+
+                let mut focus_to = false;
+                let mut focus_send = false;
+
                 ui.horizontal(|ui| {
                     let max = self
-                        .bank
-                        .as_ref()
+                        .bank()
                         .and_then(|b| b.accounts.iter().find(|a| a.type_ == self.from_account))
                         .map(|a| a.balance_cents)
                         .unwrap_or_default() as f64;
@@ -32,11 +36,22 @@ impl LocalApp {
                         .ui(ui);
 
                     let mut transfer_amount = self.transfer_amount as f64 / 100.0;
-                    ui.add(
+                    let res = ui.add(
                         egui::Slider::new(&mut transfer_amount, 0.0f64..=max)
                             .max_decimals(2)
                             .min_decimals(2),
                     );
+
+                    if self.focus_on == Some(FocusOn::Amount) {
+                        self.focus_on.take();
+                        res.request_focus();
+                    }
+
+                    if enter_pressed || res.lost_focus() {
+                        enter_pressed = false;
+                        focus_to = true;
+                    }
+
                     self.transfer_amount = (transfer_amount * 100.0) as u64;
                 });
 
@@ -44,17 +59,26 @@ impl LocalApp {
                     egui::Label::new(RichText::new("From: ").strong())
                         .selectable(false)
                         .ui(ui);
+
                     ui.label(format!("{}", self.from_account));
                 });
 
                 ui.horizontal(|ui| {
-                    egui::Label::new(RichText::new("To: ").strong())
+                    egui::Label::new(RichText::new("Bank: ").strong())
                         .selectable(false)
                         .ui(ui);
-                    ui.label(format!("{}", self.to_account));
-                });
 
-                egui::TextEdit::singleline(&mut self.to_user).ui(ui);
+                    let res = egui::TextEdit::singleline(&mut self.to_user).ui(ui);
+
+                    if focus_to {
+                        res.request_focus();
+                    }
+
+                    if enter_pressed || res.lost_focus() {
+                        enter_pressed = false;
+                        focus_send = true;
+                    }
+                });
 
                 ui.add_space(5.0);
 
@@ -65,19 +89,32 @@ impl LocalApp {
 
                 ui.add_space(10.0);
 
-                if ui.button(RichText::new("Transfer").strong()).clicked() {
-                    should_transfer = true;
-                }
+                ui.horizontal(|ui| {
+                    let res = ui.button(RichText::new("Send").strong());
+
+                    if focus_send {
+                        res.request_focus();
+                    }
+
+                    if res.clicked() {
+                        should_transfer = true;
+                    }
+
+                    if ui.button(RichText::new("Cancel").strong()).clicked() {
+                        self.mode = Mode::Summary;
+                    }
+                });
             });
 
         if should_transfer {
             if self.transfer_amount == 0 {
-                self.show_dialog("Invalid Input", "You must actually transfer an amount");
+                self.show_dialog(ui, "Invalid Input", "You must actually transfer an amount");
             } else if self.description.is_empty() {
-                self.show_dialog("Invalid Input", "You must enter a description");
+                self.show_dialog(ui, "Invalid Input", "You must enter a description");
+            } else if self.to_user.is_empty() {
+                self.show_dialog(ui, "Invalid Input", "You must enter a destination bank");
             } else {
-                self.transfer(frame);
-                self.description.clear();
+                self.transfer(ui, frame);
             }
         }
 

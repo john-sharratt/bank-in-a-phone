@@ -1,15 +1,21 @@
 use egui::{Align2, Modifiers, RichText, Ui, Vec2};
 
-use crate::LocalApp;
+use crate::{state::local_app::FocusOn, LocalApp};
+
+use super::Mode;
 
 impl LocalApp {
-    pub fn show_error(&mut self, title: &str, err: anyhow::Error) {
+    pub fn show_error(&mut self, ui: &mut Ui, title: &str, err: anyhow::Error) {
+        ui.input_mut(|i| i.consume_key(Modifiers::NONE, egui::Key::Enter));
+
         self.dialog_title = title.to_string();
         self.dialog_msg = err.to_string();
         self.dialog_visible = true;
     }
 
-    pub fn show_dialog(&mut self, title: &str, msg: &str) {
+    pub fn show_dialog(&mut self, ui: &mut Ui, title: &str, msg: &str) {
+        ui.input_mut(|i| i.consume_key(Modifiers::NONE, egui::Key::Enter));
+
         self.dialog_title = title.to_string();
         self.dialog_msg = msg.to_string();
         self.dialog_visible = true;
@@ -17,11 +23,12 @@ impl LocalApp {
 
     pub fn render_dialog(&mut self, ui: &Ui) {
         if self.dialog_visible {
-            if ui.input_mut(|i| {
-                i.consume_key(Modifiers::NONE, egui::Key::Enter)
-                    || i.consume_key(Modifiers::NONE, egui::Key::Escape)
-            }) {
+            if ui.input_mut(|i| i.key_pressed(egui::Key::Enter) || i.key_pressed(egui::Key::Escape))
+            {
                 self.dialog_visible = false;
+                if self.mode == Mode::NewAccount || self.mode == Mode::Login {
+                    self.focus_on.replace(FocusOn::Username);
+                }
             }
 
             // Render any dialog box

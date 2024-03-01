@@ -8,10 +8,10 @@ use std::sync::mpsc;
 #[cfg(not(target_arch = "wasm32"))]
 use tokio::task::spawn_local;
 
-use crate::sleep;
-
 #[cfg(target_arch = "wasm32")]
 use {wasm_bindgen::UnwrapThrowExt, wasm_bindgen_futures::spawn_local, ws_stream_wasm::*};
+
+use crate::sleep;
 
 pub struct WebSocket {
     tx: futures::channel::mpsc::UnboundedSender<Vec<u8>>,

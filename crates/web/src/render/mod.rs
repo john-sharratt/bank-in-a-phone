@@ -1,12 +1,16 @@
-pub mod create;
 pub mod bank_summary;
-pub mod move_money;
+pub mod create;
 pub mod dialog;
+pub mod login;
+pub mod move_money;
 pub mod send_money;
 
-#[derive(Clone, Copy, serde::Deserialize, serde::Serialize)]
+#[derive(
+    Clone, Copy, serde::Deserialize, serde::Serialize, PartialEq, Eq, PartialOrd, Ord, Hash,
+)]
 pub enum Mode {
-    Create,
+    NewAccount,
+    Login,
     Summary,
     MoveMoney,
     SendMoney,

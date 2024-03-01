@@ -39,7 +39,10 @@ impl Ledger {
                     return Err(anyhow::anyhow!("Bank does not exist - {}", local_bank));
                 }
             }
-            AccountRef::Foreign { username, account } => {
+            AccountRef::Foreign {
+                bank: username,
+                account,
+            } => {
                 if let Some(bank) = self.find_bank(username) {
                     from_bank = bank.clone();
                     match from_bank.find_account(account) {
@@ -89,7 +92,10 @@ impl Ledger {
                     return Err(anyhow::anyhow!("Bank does not exist - {}", local_bank));
                 }
             }
-            AccountRef::Foreign { username, account } => {
+            AccountRef::Foreign {
+                bank: username,
+                account,
+            } => {
                 if let Some(bank) = self.find_bank(username) {
                     to_bank = if bank.owner == from_bank.owner {
                         from_bank.clone()

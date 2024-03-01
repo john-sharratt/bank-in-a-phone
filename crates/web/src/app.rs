@@ -1,4 +1,8 @@
-use crate::{render::Mode, state::local_app::LocalApp};
+use crate::{
+    render::Mode,
+    sound::play::play_intro,
+    state::local_app::{FocusOn, LocalApp},
+};
 
 impl LocalApp {
     /// Called once before the first frame.
@@ -8,11 +12,16 @@ impl LocalApp {
 
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
+        let mut ret: Self = Default::default();
         if let Some(storage) = cc.storage {
-            return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+            ret = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
         }
 
-        Default::default()
+        if ret.mode == Mode::NewAccount || ret.mode == Mode::Login {
+            ret.focus_on = Some(FocusOn::Username);
+        }
+
+        ret
     }
 
     fn powered_by_egui_and_eframe(&mut self, ui: &mut egui::Ui) {
@@ -60,7 +69,8 @@ impl eframe::App for LocalApp {
             ui.heading("Immutable Bank");
 
             match self.mode {
-                Mode::Create => self.render_create_account(ui, frame),
+                Mode::NewAccount => self.render_create_account(ui, frame),
+                Mode::Login => self.render_login(ui, frame),
                 Mode::Summary => self.render_bank_summary(ui, frame),
                 Mode::MoveMoney => self.render_move_money(ui, frame),
                 Mode::SendMoney => self.render_send_money(ui, frame),
@@ -75,14 +85,40 @@ impl eframe::App for LocalApp {
 
                     ui.add_space(10.0);
 
-                    if ui.button("Reset").clicked() {
-                        *self = Self::default();
+                    if ui.button("Logout").clicked() {
+                        self.session.take();
+                        self.username = Default::default();
+                        self.password = Default::default();
+                        self.confirm_password = Default::default();
+                        self.mode = Mode::Login;
+                        self.focus_on.replace(FocusOn::Username);
+
+                        let _ = play_intro();
+
                         self.save_state(frame);
+                    }
+
+                    #[cfg(debug_assertions)]
+                    {
+                        if ui.button("Reset").clicked() {
+                            *self = Self::default();
+                            self.init = true;
+
+                            let _ = play_intro();
+
+                            self.save_state(frame);
+                        }
                     }
                 });
                 self.powered_by_egui_and_eframe(ui);
                 egui::warn_if_debug_build(ui);
             });
         });
+
+        if self.init == false {
+            if self.init(frame).is_ok() {
+                self.init = true;
+            }
+        }
     }
 }

@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use super::account::{Account, AccountType};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Bank {

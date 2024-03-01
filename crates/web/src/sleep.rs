@@ -6,7 +6,6 @@ pub async fn sleep(ms: i32) {
 
 #[cfg(target_arch = "wasm32")]
 pub async fn sleep(ms: i32) {
-    use eframe::web_sys;
     use wasm_bindgen_futures::js_sys;
 
     let mut cb = |resolve: js_sys::Function, _reject: js_sys::Function| {
