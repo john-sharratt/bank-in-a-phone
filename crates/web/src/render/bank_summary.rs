@@ -106,7 +106,9 @@ impl LocalApp {
                             .max_height(200.0)
                             .show(ui, |ui| {
                                 let me = self.bank().map(|s| s.owner.clone()).unwrap_or_default();
-                                for transaction in self.ledger.transactions_for(me.as_str()) {
+                                for transaction in
+                                    self.ledger.transactions_for(me.as_str()).iter().rev()
+                                {
                                     egui::Frame::default()
                                         .rounding(Rounding::default().at_least(3.0))
                                         .inner_margin(Margin::same(8.0))
