@@ -34,6 +34,9 @@ pub struct LocalApp {
     pub ledger: Ledger,
 
     #[serde(skip, default)]
+    pub last_reconnects: u64,
+
+    #[serde(skip, default)]
     pub ws: WebSocket,
     pub pending: Option<LedgerHeader>,
 
@@ -82,6 +85,7 @@ impl Default for LocalApp {
             pending: None,
 
             init: false,
+            last_reconnects: 0,
 
             from_account: AccountType::Wallet,
             to_account: AccountType::Savings,

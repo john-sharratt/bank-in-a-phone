@@ -1,5 +1,5 @@
 use egui::Ui;
-use immutable_bank_model::{header::LedgerMessage, ledger_type::LedgerEntry};
+use immutable_bank_model::ledger_type::LedgerEntry;
 
 use crate::LocalApp;
 
@@ -12,34 +12,7 @@ impl LocalApp {
             }
         };
 
-        while let Some(msg) = self.ws.try_recv() {
-            let msg: LedgerMessage = match bincode::deserialize(&msg) {
-                Ok(e) => e,
-                Err(err) => {
-                    log::error!("failed to deserialize msg - {}", err);
-                    continue;
-                }
-            };
-
-            match &msg.entry {
-                LedgerEntry::NewBank(bank) | LedgerEntry::UpdateBank(bank) => {
-                    if let Some(b) = self.banks.get_mut(&bank.owner) {
-                        log::info!("Local bank ({}) updated", bank.owner);
-                        b.bank = bank.clone();
-                    } else {
-                        log::info!("Foreign bank ({}) updated", bank.owner);
-                    }
-                }
-                LedgerEntry::Transfer { transaction, .. } => {
-                    log::info!("Money Transfer {}->{}", transaction.from, transaction.to);
-                }
-                LedgerEntry::Error(err) => {
-                    log::info!("Ledger Error - {}", err);
-                }
-            }
-
-            self.ledger.entries.insert(msg.header, msg.entry);
-        }
+        self.poll();
 
         let res = self.ledger.entries.get(&pending).map(|entry| match &entry {
             LedgerEntry::Error(err) => Err(anyhow::anyhow!("{}", err)),

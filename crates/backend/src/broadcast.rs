@@ -24,8 +24,10 @@ impl GeneralState {
         });
     }
 
-    pub fn broadcast(&self, msh: LedgerMessage) {
-        let data = match bincode::serialize(&msh) {
+    pub fn broadcast(&self, msg: LedgerMessage) {
+        tracing::warn!("Broadcast message: {:?}", msg);
+
+        let data = match bincode::serialize(&msg) {
             Ok(d) => d,
             Err(err) => {
                 tracing::error!("failed to serialize entry to broadcast - {}", err);

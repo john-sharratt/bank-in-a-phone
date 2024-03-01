@@ -49,6 +49,8 @@ impl eframe::App for LocalApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        self.poll();
+
         let is_web = cfg!(target_arch = "wasm32");
         if !is_web {
             egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {

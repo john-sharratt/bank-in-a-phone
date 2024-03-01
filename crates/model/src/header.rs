@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ledger_type::LedgerEntry;
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LedgerHeader {
     pub id: u64,
     pub signature: u64,

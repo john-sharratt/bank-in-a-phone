@@ -1,3 +1,4 @@
+#![allow(unused)]
 use rand::RngCore;
 
 use crate::{
@@ -25,6 +26,7 @@ impl Ledger {
             }
         }
 
+        /*
         self.add_with_header(
             LedgerHeader {
                 id: header.id,
@@ -65,6 +67,7 @@ impl Ledger {
                 local_bank: bank.owner.clone(),
             },
         );
+        */
 
         self.add_with_header(header, LedgerEntry::NewBank(bank.clone()));
     }

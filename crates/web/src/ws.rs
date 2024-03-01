@@ -3,7 +3,10 @@ use futures::stream::StreamExt;
 use futures::FutureExt;
 use futures::SinkExt;
 use pharos::*;
+use std::sync::atomic::AtomicU64;
+use std::sync::atomic::Ordering;
 use std::sync::mpsc;
+use std::sync::Arc;
 
 #[cfg(not(target_arch = "wasm32"))]
 use tokio::task::spawn_local;
@@ -14,6 +17,7 @@ use {wasm_bindgen::UnwrapThrowExt, wasm_bindgen_futures::spawn_local, ws_stream_
 use crate::sleep;
 
 pub struct WebSocket {
+    reconnects: Arc<AtomicU64>,
     tx: futures::channel::mpsc::UnboundedSender<Vec<u8>>,
     rx: mpsc::Receiver<Vec<u8>>,
 }
@@ -26,9 +30,11 @@ impl Default for WebSocket {
 
 impl WebSocket {
     pub fn new() -> Self {
+        let reconnects = Arc::new(AtomicU64::new(0));
         let (tx1, mut rx1) = futures::channel::mpsc::unbounded();
         let (tx2, rx2) = mpsc::channel();
 
+        let reconnects_inner = reconnects.clone();
         spawn_local(async move {
             let mut backoff = 500;
             loop {
@@ -56,6 +62,8 @@ impl WebSocket {
                     }
                 };
                 log::info!("connected to {}", uri);
+
+                reconnects_inner.fetch_add(1, Ordering::SeqCst);
 
                 // Loop processing and receiving data
                 let mut close_evts = ws
@@ -102,7 +110,11 @@ impl WebSocket {
             }
         });
 
-        Self { tx: tx1, rx: rx2 }
+        Self {
+            reconnects,
+            tx: tx1,
+            rx: rx2,
+        }
     }
 
     pub fn send(&mut self, data: Vec<u8>) {
@@ -111,5 +123,9 @@ impl WebSocket {
 
     pub fn try_recv(&mut self) -> Option<Vec<u8>> {
         self.rx.try_recv().ok()
+    }
+
+    pub fn reconnects(&self) -> u64 {
+        self.reconnects.load(Ordering::SeqCst)
     }
 }

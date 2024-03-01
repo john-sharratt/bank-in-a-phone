@@ -27,6 +27,7 @@ pub async fn handle_ws(stream: HyperWebsocket, state: GeneralState) -> anyhow::R
             .collect::<Vec<_>>()
     };
     for msg in entire_ledger {
+        tracing::warn!("Replay message: {:?}", msg);
         let data = bincode::serialize(&msg)?;
         tx.send(Message::binary(data)).await?;
     }

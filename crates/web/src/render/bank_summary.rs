@@ -1,5 +1,5 @@
 use egui::{Align2, Color32, Margin, RichText, Rounding, Stroke, Vec2, Widget};
-use immutable_bank_model::{account::AccountType, ledger_type::LedgerEntry};
+use immutable_bank_model::account::AccountType;
 
 use crate::{state::local_app::FocusOn, LocalApp};
 
@@ -106,17 +106,7 @@ impl LocalApp {
                             .max_height(200.0)
                             .show(ui, |ui| {
                                 let me = self.bank().map(|s| s.owner.clone()).unwrap_or_default();
-                                for transaction in
-                                    self.ledger.entries.values().filter_map(|f| match f {
-                                        LedgerEntry::Transfer {
-                                            local_bank,
-                                            transaction,
-                                        } if local_bank.as_str() == me.as_str() => {
-                                            Some(transaction)
-                                        }
-                                        _ => None,
-                                    })
-                                {
+                                for transaction in self.ledger.transactions_for(me.as_str()) {
                                     egui::Frame::default()
                                         .rounding(Rounding::default().at_least(3.0))
                                         .inner_margin(Margin::same(8.0))

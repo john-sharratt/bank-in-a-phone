@@ -4,10 +4,11 @@ use crate::general_state::GeneralStateInner;
 
 impl GeneralStateInner {
     pub fn process(&mut self, msg: LedgerMessage) {
-        tracing::warn!("Duplicate message: {:?}", msg.header);
         if self.ledger.entries.contains_key(&msg.header) {
+            tracing::warn!("Duplicate message: {:?}", msg.header);
             return;
         }
+
         tracing::info!("Received Msg: {:?}", msg);
         match msg.entry.clone() {
             LedgerEntry::NewBank(bank) => {

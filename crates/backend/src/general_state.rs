@@ -2,7 +2,7 @@ use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, ops::Deref, sync::Arc, time::Duration};
 
-use immutable_bank_model::ledger::Ledger;
+use immutable_bank_model::{header::LedgerMessage, ledger::Ledger, ledger_type::LedgerEntry};
 use tokio::sync::{broadcast, Mutex, MutexGuard};
 
 use crate::opts::Opts;
@@ -21,9 +21,9 @@ pub struct GeneralState {
 
 impl GeneralState {
     pub fn load(opts: &Opts) -> GeneralState {
-        let inner = match std::fs::read_to_string(&opts.data_path) {
+        let msgs = match std::fs::read_to_string(&opts.data_path) {
             Ok(data) => {
-                let inner: GeneralStateInner = match serde_json::from_str(&data) {
+                let msgs: Vec<LedgerMessage> = match serde_json::from_str(&data) {
                     Ok(inner) => inner,
                     Err(err) => {
                         tracing::error!(
@@ -31,16 +31,27 @@ impl GeneralState {
                             opts.data_path,
                             err
                         );
-                        GeneralStateInner::default()
+                        Vec::new()
                     }
                 };
-                inner
+                msgs
             }
             Err(err) => {
                 tracing::error!("failed to read ledger - {:?} - {}", opts.data_path, err);
-                GeneralStateInner::default()
+                Vec::new()
             }
         };
+
+        let mut inner = GeneralStateInner::default();
+        for msg in msgs {
+            match &msg.entry {
+                LedgerEntry::NewBank(bank) | LedgerEntry::UpdateBank(bank) => {
+                    inner.existing_banks.insert(bank.owner.clone());
+                }
+                _ => {}
+            }
+            inner.ledger.entries.insert(msg.header, msg.entry);
+        }
 
         let state = GeneralState {
             inner: Arc::new(Mutex::new(inner)),
@@ -63,12 +74,26 @@ impl GeneralState {
         loop {
             interval.tick().await;
 
-            tracing::info!("Saving general state to {:?}", opts.data_path);
-
             // Copy the state
-            let state = {
+            let msgs = {
                 let guard = self.lock().await;
-                tokio::task::block_in_place(|| guard.deref().clone())
+                tracing::info!(
+                    "Saving general state to {:?} - entries.len={}",
+                    opts.data_path,
+                    guard.ledger.entries.len()
+                );
+                tokio::task::block_in_place(|| {
+                    guard
+                        .deref()
+                        .ledger
+                        .entries
+                        .iter()
+                        .map(|(h, e)| LedgerMessage {
+                            header: h.clone(),
+                            entry: e.clone(),
+                        })
+                        .collect::<Vec<_>>()
+                })
             };
 
             // Determine the staging location
@@ -80,7 +105,7 @@ impl GeneralState {
             // We are going into a blocking thread while we save the data to the disk
             // This operation is done in a safe way not to delete the journal
             tokio::task::block_in_place(|| {
-                if let Ok(data) = serde_json::to_vec_pretty(&state) {
+                if let Ok(data) = serde_json::to_vec_pretty(&msgs) {
                     if std::path::Path::exists(&staging_path) {
                         if let Err(err) = std::fs::remove_file(&staging_path) {
                             tracing::error!("failed to remove staging file - {}", err);

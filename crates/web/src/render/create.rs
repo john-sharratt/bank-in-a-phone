@@ -48,7 +48,7 @@ impl LocalApp {
                 let mut focus_confirm_password = false;
 
                 ui.horizontal(|ui| {
-                    ui.label("Username: ");
+                    ui.label("Bank Name: ");
 
                     let is_ok = is_username_ok(self);
                     let res = TextEdit::singleline(&mut self.username)

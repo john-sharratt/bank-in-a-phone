@@ -9,6 +9,7 @@ impl LocalApp {
             entry,
         };
 
+        log::info!("Sending message {:?}", msg);
         let data = bincode::serialize(&msg)?;
         self.ws.send(data);
 

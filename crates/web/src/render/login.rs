@@ -43,34 +43,24 @@ impl LocalApp {
                 let mut focus_password = false;
 
                 ui.horizontal(|ui| {
-                    ui.label("Bank: ");
+                    ui.label("Bank Name: ");
 
-                    let res = egui::ComboBox::from_id_source("select_login")
-                        .selected_text(format!("{}", self.username))
-                        .show_ui(ui, |ui| {
-                            ui.style_mut().wrap = Some(false);
-                            ui.set_min_width(100.0);
-
-                            for (bank, _) in self.banks.iter() {
-                                ui.selectable_value(
-                                    &mut self.username,
-                                    bank.clone(),
-                                    format!("{}", bank),
-                                );
-                            }
-                        });
+                    let is_ok = self.banks.contains_key(&self.username);
+                    let res = TextEdit::singleline(&mut self.username)
+                        .text_color(if is_ok {
+                            Color32::GREEN
+                        } else {
+                            Color32::LIGHT_RED
+                        })
+                        .ui(ui);
 
                     if matches!(self.focus_on, Some(FocusOn::Username)) {
-                        res.response.request_focus();
+                        res.request_focus();
                         self.focus_on.take();
                         self.save_state(frame);
                     }
 
-                    if res.response.changed() || res.response.clicked() {
-                        focus_password = true;
-                    }
-
-                    if enter_pressed && res.response.lost_focus() {
+                    if enter_pressed && res.lost_focus() {
                         enter_pressed = false;
                         focus_password = true;
                     }
