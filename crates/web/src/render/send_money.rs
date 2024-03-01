@@ -1,11 +1,15 @@
-use egui::{Align2, RichText, Vec2, Widget};
+use egui::{Align2, RichText, TextEdit, Vec2, Widget};
 
 use crate::state::local_app::LocalApp;
 
 use super::Mode;
 
 impl LocalApp {
-    pub fn render_send_money(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+    pub fn render_send_money(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
+        self.try_finish(|app| {
+            app.mode = Mode::Summary;
+        });
+
         let mut is_open = true;
         let mut should_transfer = false;
         egui::Window::new("Send Money")
@@ -52,12 +56,30 @@ impl LocalApp {
 
                 egui::TextEdit::singleline(&mut self.to_user).ui(ui);
 
+                ui.add_space(5.0);
+
+                ui.horizontal(|ui| {
+                    ui.label("Description: ");
+                    TextEdit::singleline(&mut self.description).ui(ui);
+                });
+
                 ui.add_space(10.0);
 
                 if ui.button(RichText::new("Transfer").strong()).clicked() {
                     should_transfer = true;
                 }
             });
+
+        if should_transfer {
+            if self.transfer_amount == 0 {
+                self.show_dialog("Invalid Input", "You must actually transfer an amount");
+            } else if self.description.is_empty() {
+                self.show_dialog("Invalid Input", "You must enter a description");
+            } else {
+                self.transfer(frame);
+                self.description.clear();
+            }
+        }
 
         if !is_open {
             self.mode = Mode::Summary;

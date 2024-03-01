@@ -4,7 +4,7 @@ members = ["crates/*"]
 
 [workspace.package]
 keywords = ["bank", "immutable", "webassembly"]
-repository = "https://github.com/john-sharratt/bank-in-a-phone"
+repository = "https://github.com/john-sharratt/immutable-phone"
 publish = false
 version = "0.1.0"
 authors = ["John Sharratt <johnathan.sharratt@gmail.com>"]
@@ -14,6 +14,7 @@ license = "MIT"
 
 [workspace.dependencies]
 egui = { version = "0.26.0" }
+immutable-bank-model = { path = "crates/model" }
 eframe = { version = "0.26.0", default-features = false, features = [
     "default_fonts",
     "glow",
@@ -24,6 +25,40 @@ serde = { version = "1", features = ["derive"] }
 env_logger = { version = "0.10" }
 wasm-bindgen-futures = { version = "0.4" }
 anyhow = { version = "1.0.80" }
+include_dir = { version = "0.7.3" }
+hyper = { version = "1.2.0" }
+http-body-util = { version = "0.1" }
+hyper-util = { version = "0.1", features = ["full"] }
+tokio-tungstenite = { version = "0.21.0" }
+bincode = { version = "1.3.3" }
+serde_json = { version = "1.0.114" }
+clap = { version = "4.5.1", features = ["derive"] }
+rand = { version = "0.8.5" }
+getrandom = { version = "0.2.0" }
+bytes = { version = "1.5.0" }
+futures = { version = "0.3.30" }
+futures-util = { version = "0.3.30" }
+clap-verbosity-flag = { version = "2.2.0" }
+ws_stream_wasm = { version = "0.7.4" }
+pharos = { version = "0.5.3" }
+wasm-bindgen = { version = "0.2.91" }
+tokio = { version = "1.36.0", default-features = false, features = [
+    "rt-multi-thread",
+    "macros",
+    "fs",
+    "net",
+    "io-util",
+    "signal",
+] }
+http = { version = "1.0.0" }
+tracing = { version = "0.1", default-features = false, features = ["std"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = [
+    "smallvec",
+    "parking_lot",
+    "fmt",
+    "ansi",
+    "tracing-log",
+] }
 
 [profile.release]
 opt-level = 2

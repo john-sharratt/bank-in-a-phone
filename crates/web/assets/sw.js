@@ -1,9 +1,9 @@
-var cacheName = 'bank-in-a-phone-pwa';
+var cacheName = 'immutable-bank-pwa';
 var filesToCache = [
   './',
   './index.html',
-  './biap-web.js',
-  './biap-web.wasm',
+  './immutable-bank.js',
+  './immutable-bank.wasm',
 ];
 
 /* Start the service worker and cache all of the app's content */

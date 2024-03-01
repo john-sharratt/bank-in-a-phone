@@ -1,6 +1,6 @@
-# Bank-in-a-phone
+# Immutable Bank
 
-![Bank in a Phone](assets/bank_in_a_phone.jpg)
+![Immutable Bank](crates/web/assets/bank_in_a_phone.jpg)
 
 What if?
 

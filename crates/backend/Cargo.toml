@@ -1,0 +1,27 @@
+[package]
+name = "immutable-bank-ledger"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+immutable-bank-model.workspace = true
+serde.workspace = true
+anyhow.workspace = true
+include_dir.workspace = true
+hyper.workspace = true
+http-body-util.workspace = true
+hyper-util.workspace = true
+tokio-tungstenite.workspace = true
+tokio.workspace = true
+http.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+clap.workspace = true
+clap-verbosity-flag.workspace = true
+futures-util.workspace = true
+bincode.workspace = true
+serde_json.workspace = true
+bytes.workspace = true

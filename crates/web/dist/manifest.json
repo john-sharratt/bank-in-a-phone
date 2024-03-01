@@ -1,6 +1,6 @@
 {
-  "name": "Bank-in-a-Phone",
-  "short_name": "bank-in-a-phone-pwa",
+  "name": "Immutable-Bank",
+  "short_name": "immutable-bank-pwa",
   "icons": [
     {
       "src": "./icon-256.png",

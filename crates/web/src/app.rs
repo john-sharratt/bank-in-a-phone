@@ -15,12 +15,6 @@ impl LocalApp {
         Default::default()
     }
 
-    pub fn save_state(&mut self, frame: &mut eframe::Frame) {
-        if let Some(storage) = frame.storage_mut() {
-            eframe::set_value(storage, eframe::APP_KEY, self);
-        }
-    }
-
     fn powered_by_egui_and_eframe(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 0.0;
@@ -33,7 +27,7 @@ impl LocalApp {
             );
             ui.label(" with ");
             ui.add(egui::github_link_file!(
-                "https://github.com/john-sharratt/bank-in-a-phone/blob/master/",
+                "https://github.com/john-sharratt/immutable-bank/blob/master/",
                 "Source code."
             ));
         });
@@ -63,17 +57,13 @@ impl eframe::App for LocalApp {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Bank in a Phone");
+            ui.heading("Immutable Bank");
 
             match self.mode {
                 Mode::Create => self.render_create_account(ui, frame),
                 Mode::Summary => self.render_bank_summary(ui, frame),
-                Mode::MoveMoney => {
-                    self.render_move_money(ui, frame)
-                },
-                Mode::SendMoney => {
-                    self.render_send_money(ui, frame)
-                },
+                Mode::MoveMoney => self.render_move_money(ui, frame),
+                Mode::SendMoney => self.render_send_money(ui, frame),
             }
             self.render_dialog(ui);
 
