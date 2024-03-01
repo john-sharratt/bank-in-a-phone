@@ -1,4 +1,4 @@
-use egui::{Align2, Key, RichText, TextEdit, Vec2, Widget};
+use egui::{Align2, Key, RichText, Vec2, Widget};
 use immutable_bank_model::account::AccountType;
 
 use crate::state::local_app::{FocusOn, LocalApp};
@@ -93,13 +93,6 @@ impl LocalApp {
                         }
                     });
 
-                    ui.add_space(5.0);
-
-                    ui.horizontal(|ui| {
-                        ui.label("Description: ");
-                        TextEdit::singleline(&mut self.description).ui(ui);
-                    });
-
                     ui.add_space(10.0);
 
                     ui.horizontal(|ui| {
@@ -123,8 +116,6 @@ impl LocalApp {
         if should_transfer {
             if self.transfer_amount == 0 {
                 self.show_dialog(ui, "Invalid Input", "You must actually transfer an amount");
-            } else if self.description.is_empty() {
-                self.show_dialog(ui, "Invalid Input", "You must enter a description");
             } else {
                 self.transfer(ui, frame);
                 self.description.clear();

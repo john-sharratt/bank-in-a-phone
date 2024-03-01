@@ -1,12 +1,13 @@
 use futures_util::{stream::SplitSink, SinkExt};
+use hyper::upgrade::Upgraded;
+use hyper_util::rt::TokioIo;
 use immutable_bank_model::ledger_entry::LedgerEntry;
-use tokio::net::TcpStream;
 use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
 
 use crate::general_state::GeneralState;
 
 pub type SubscriberTx =
-    SplitSink<WebSocketStream<TcpStream>, tokio_tungstenite::tungstenite::Message>;
+    SplitSink<WebSocketStream<TokioIo<Upgraded>>, tokio_tungstenite::tungstenite::Message>;
 
 impl GeneralState {
     pub fn subscribe(&self, mut tx: SubscriberTx) {

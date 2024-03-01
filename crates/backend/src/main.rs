@@ -1,15 +1,15 @@
+pub mod broadcast;
 pub mod general_state;
-pub mod html_handler;
+pub mod http_handler;
 pub mod logger;
 pub mod opts;
-pub mod ws_handler;
 pub mod process;
-pub mod broadcast;
+pub mod ws_handler;
 
 use clap::Parser;
 use opts::Opts;
 
-use crate::{general_state::GeneralState, html_handler::http_server, ws_handler::ws_server};
+use crate::{general_state::GeneralState, http_handler::http_server};
 
 fn main() -> anyhow::Result<()> {
     let opts = Opts::parse();
@@ -28,22 +28,14 @@ fn main() -> anyhow::Result<()> {
         .block_on(async {
             tracing::trace!("tokio runtime initialized");
 
+            // Load the general state
+            let state = GeneralState::load(&opts);
+
             // Spinning up the HTTP server
             {
                 let opts = opts.clone();
                 tokio::task::spawn(async move {
-                    http_server(&opts).await.unwrap();
-                });
-            }
-
-            // Load the general state
-            let state = GeneralState::load(&opts);
-
-            // Spinning up the WebSocket server
-            {
-                let opts = opts.clone();
-                tokio::task::spawn(async move {
-                    ws_server(&opts, state).await.unwrap();
+                    http_server(&opts, state).await.unwrap();
                 });
             }
 

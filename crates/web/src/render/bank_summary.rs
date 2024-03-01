@@ -40,8 +40,12 @@ impl LocalApp {
                 ui.horizontal(|ui| {
                     if account_type.can_move_money() {
                         if ui.button("Move Money").clicked() {
-                            self.from_account = AccountType::Wallet;
-                            self.to_account = AccountType::Savings;
+                            self.transfer_amount = 0;
+                            self.from_account = account_type;
+                            self.to_account = match account_type {
+                                AccountType::Wallet => AccountType::Savings,
+                                _ => AccountType::Wallet,
+                            };
                             self.to_user = Default::default();
                             self.description.clear();
                             self.mode = Mode::MoveMoney;
@@ -52,6 +56,7 @@ impl LocalApp {
 
                     if account_type.can_send_money() {
                         if ui.button("Send Money").clicked() {
+                            self.transfer_amount = 0;
                             self.from_account = AccountType::Wallet;
                             self.to_account = AccountType::Wallet;
                             self.to_user = Default::default();
@@ -153,11 +158,13 @@ impl LocalApp {
                                                     .ui(ui);
                                             });
 
-                                            ui.add_space(5.0);
-                                            egui::Label::new(&transaction.description)
-                                                .selectable(false)
-                                                .wrap(true)
-                                                .ui(ui);
+                                            if !transaction.description.is_empty() {
+                                                ui.add_space(5.0);
+                                                egui::Label::new(&transaction.description)
+                                                    .selectable(false)
+                                                    .wrap(true)
+                                                    .ui(ui);
+                                            }
                                         });
                                 }
                             });

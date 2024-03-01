@@ -47,10 +47,10 @@ impl Display for AccountRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             AccountRef::Local { account } => write!(f, "{account}"),
-            AccountRef::Foreign {
-                bank: username,
-                account,
-            } => write!(f, "{account}({username})"),
+            AccountRef::Foreign { bank, account } if *account == AccountType::Wallet => {
+                write!(f, "{bank}")
+            }
+            AccountRef::Foreign { bank, account } => write!(f, "{account}({bank})"),
         }
     }
 }

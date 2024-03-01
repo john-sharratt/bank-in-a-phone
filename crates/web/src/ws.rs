@@ -42,9 +42,9 @@ impl WebSocket {
                 };
 
                 let uri = if cfg!(debug_assertions) {
-                    "ws://localhost:8001"
+                    "ws://localhost:8000"
                 } else {
-                    "ws://immutable-bank.com:8001"
+                    "wss://immutable-bank.com:443"
                 };
 
                 log::info!("connecting to {}", uri);

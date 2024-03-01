@@ -17,7 +17,4 @@ pub struct Opts {
     /// HTTP port to use.
     #[clap(long, default_value = "8000")]
     pub http_port: u16,
-    /// HTTP port to use.
-    #[clap(long, default_value = "8001")]
-    pub ws_port: u16,
 }
