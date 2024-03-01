@@ -1,8 +1,10 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
-use crate::ledger_entry::LedgerEntry;
+use crate::{header::LedgerHeader, ledger_type::LedgerEntry};
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct Ledger {
-    pub entries: Vec<LedgerEntry>,
+    pub entries: BTreeMap<LedgerHeader, LedgerEntry>,
 }

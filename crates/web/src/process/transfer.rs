@@ -1,6 +1,6 @@
 use egui::Ui;
 use immutable_bank_model::{
-    account::AccountRef, ledger_type::LedgerType, transaction::Transaction,
+    account::AccountRef, ledger_type::LedgerEntry, transaction::Transaction,
 };
 
 use crate::LocalApp;
@@ -13,7 +13,7 @@ impl LocalApp {
                 return;
             }
         };
-        let transfer = LedgerType::Transfer {
+        let transfer = LedgerEntry::Transfer {
             local_bank,
             transaction: Transaction {
                 from: AccountRef::Local {

@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+ssh-keygen -f "/home/john/.ssh/known_hosts" -R "20.6.104.129"
 scp -r -i ~/.ssh/accelerate.pem target/release/immutable-bank-ledger azureuser@20.6.104.129:~
 scp -r -i ~/.ssh/accelerate.pem immutable-bank.service azureuser@20.6.104.129:~
 

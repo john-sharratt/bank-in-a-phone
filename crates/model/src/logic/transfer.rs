@@ -1,15 +1,19 @@
+use rand::RngCore;
+
 use crate::{
-    account::AccountRef, bank::Bank, ledger::Ledger, ledger_type::LedgerType,
-    transaction::Transaction,
+    account::AccountRef, bank::Bank, header::LedgerHeader, ledger::Ledger,
+    ledger_type::LedgerEntry, transaction::Transaction,
 };
 
 impl Ledger {
     pub fn transfer(
         &mut self,
-        entry_id: u64,
+        header: LedgerHeader,
         local_bank: String,
         trans: Transaction,
     ) -> anyhow::Result<()> {
+        let mut rand = rand::thread_rng();
+
         let mut from_bank;
         let mut to_bank;
 
@@ -120,13 +124,25 @@ impl Ledger {
         }
 
         if from_bank.owner != to_bank.owner {
-            self.add(LedgerType::UpdateBank(from_bank));
+            self.add_with_header(
+                LedgerHeader {
+                    id: header.id,
+                    signature: rand.next_u64(),
+                },
+                LedgerEntry::UpdateBank(from_bank),
+            );
         }
-        self.add(LedgerType::UpdateBank(to_bank));
+        self.add_with_header(
+            LedgerHeader {
+                id: header.id,
+                signature: rand.next_u64(),
+            },
+            LedgerEntry::UpdateBank(to_bank),
+        );
 
-        self.add_with_id(
-            entry_id,
-            LedgerType::Transfer {
+        self.add_with_header(
+            header,
+            LedgerEntry::Transfer {
                 local_bank,
                 transaction: trans,
             },
@@ -136,10 +152,10 @@ impl Ledger {
 
     pub fn find_bank(&mut self, name: String) -> Option<Bank> {
         self.entries
-            .iter()
+            .values()
             .rev()
-            .filter_map(|e| match &e.entry {
-                LedgerType::NewBank(bank) | LedgerType::UpdateBank(bank) => Some(bank),
+            .filter_map(|e| match e {
+                LedgerEntry::NewBank(bank) | LedgerEntry::UpdateBank(bank) => Some(bank),
                 _ => None,
             })
             .find(|b| b.owner == name)

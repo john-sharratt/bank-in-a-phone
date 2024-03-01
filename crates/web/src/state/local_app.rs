@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{render::Mode, ws::WebSocket};
-use immutable_bank_model::{account::AccountType, bank::Bank, ledger::Ledger};
+use immutable_bank_model::{
+    account::AccountType, bank::Bank, header::LedgerHeader, ledger::Ledger,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -33,7 +35,7 @@ pub struct LocalApp {
 
     #[serde(skip, default)]
     pub ws: WebSocket,
-    pub pending: Option<u64>,
+    pub pending: Option<LedgerHeader>,
 
     #[serde(skip, default)]
     pub init: bool,

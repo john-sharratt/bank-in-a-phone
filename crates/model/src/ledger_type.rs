@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{bank::Bank, transaction::Transaction};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub enum LedgerType {
+pub enum LedgerEntry {
     NewBank(Bank),
     UpdateBank(Bank),
     Transfer {

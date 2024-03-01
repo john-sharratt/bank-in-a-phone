@@ -1,20 +1,18 @@
-use immutable_bank_model::{ledger_entry::LedgerEntry, ledger_type::LedgerType};
-use rand::RngCore;
+use immutable_bank_model::{header::LedgerMessage, ledger_type::LedgerEntry};
 
 use crate::LocalApp;
 
 impl LocalApp {
-    pub fn start_entry(&mut self, entry: LedgerType) -> anyhow::Result<()> {
-        let mut rand = rand::thread_rng();
-        let entry = LedgerEntry {
-            id: rand.next_u64(),
+    pub fn start_entry(&mut self, entry: LedgerEntry) -> anyhow::Result<()> {
+        let msg = LedgerMessage {
+            header: self.ledger.new_header(),
             entry,
         };
 
-        let data = bincode::serialize(&entry)?;
+        let data = bincode::serialize(&msg)?;
         self.ws.send(data);
 
-        self.pending.replace(entry.id);
+        self.pending.replace(msg.header);
 
         Ok(())
     }

@@ -1,7 +1,7 @@
-use crate::{bank::Bank, ledger::Ledger, ledger_type::LedgerType};
+use crate::{bank::Bank, header::LedgerHeader, ledger::Ledger, ledger_type::LedgerEntry};
 
 impl Ledger {
-    pub fn save_bank(&mut self, entry_id: u64, bank: Bank) {
-        self.add_with_id(entry_id, LedgerType::UpdateBank(bank.clone()));
+    pub fn save_bank(&mut self, header: LedgerHeader, bank: Bank) {
+        self.add_with_header(header, LedgerEntry::UpdateBank(bank.clone()));
     }
 }

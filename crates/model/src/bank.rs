@@ -4,13 +4,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Bank {
     pub owner: String,
+    pub secret: String,
     pub accounts: Vec<Account>,
 }
 
 impl Bank {
-    pub fn new(owner: String) -> Self {
+    pub fn new(owner: String, password_hash: String) -> Self {
         Bank {
             owner,
+            secret: password_hash,
             accounts: vec![
                 Account {
                     type_: AccountType::Wallet,

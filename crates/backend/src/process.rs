@@ -1,65 +1,65 @@
-use immutable_bank_model::{ledger_entry::LedgerEntry, ledger_type::LedgerType};
+use immutable_bank_model::{header::LedgerMessage, ledger_type::LedgerEntry};
 
 use crate::general_state::GeneralStateInner;
 
 impl GeneralStateInner {
-    pub fn process(&mut self, entry: LedgerEntry) {
-        match entry.entry.clone() {
-            LedgerType::NewBank(bank) => {
+    pub fn process(&mut self, msg: LedgerMessage) {
+        tracing::warn!("Duplicate message: {:?}", msg.header);
+        if self.ledger.entries.contains_key(&msg.header) {
+            return;
+        }
+        tracing::info!("Received Msg: {:?}", msg);
+        match msg.entry.clone() {
+            LedgerEntry::NewBank(bank) => {
                 if !self.existing_banks.contains(&bank.owner) {
                     let owner = bank.owner.clone();
-                    self.ledger.new_bank(entry.id, bank);
+                    self.ledger.new_bank(msg.header, bank);
                     self.existing_banks.insert(owner);
                 } else {
-                    self.ledger.entries.push(LedgerEntry {
-                        id: entry.id,
-                        entry: LedgerType::Error(format!("Bank already exist ({})", bank.owner)),
-                    });
+                    self.ledger.entries.insert(
+                        msg.header,
+                        LedgerEntry::Error(format!("Bank already exist ({})", bank.owner)),
+                    );
                 }
             }
-            LedgerType::UpdateBank(bank) => {
+            LedgerEntry::UpdateBank(bank) => {
                 if self.existing_banks.contains(&bank.owner) {
-                    self.ledger.save_bank(entry.id, bank);
+                    self.ledger.save_bank(msg.header, bank);
                 } else {
-                    self.ledger.entries.push(LedgerEntry {
-                        id: entry.id,
-                        entry: LedgerType::Error(format!(
-                            "Foreign bank does not exist ({})",
-                            bank.owner
-                        )),
-                    });
+                    self.ledger.entries.insert(
+                        msg.header,
+                        LedgerEntry::Error(format!("Foreign bank does not exist ({})", bank.owner)),
+                    );
                 }
             }
-            LedgerType::Transfer {
+            LedgerEntry::Transfer {
                 local_bank,
                 transaction,
             } => {
                 if self.existing_banks.contains(&local_bank) {
-                    match self.ledger.transfer(entry.id, local_bank, transaction) {
+                    match self
+                        .ledger
+                        .transfer(msg.header.clone(), local_bank, transaction)
+                    {
                         Ok(()) => {}
                         Err(err) => {
-                            self.ledger.entries.push(LedgerEntry {
-                                id: entry.id,
-                                entry: LedgerType::Error(err.to_string()),
-                            });
+                            self.ledger
+                                .entries
+                                .insert(msg.header, LedgerEntry::Error(err.to_string()));
                         }
                     }
                 } else {
-                    self.ledger.entries.push(LedgerEntry {
-                        id: entry.id,
-                        entry: LedgerType::Error(format!(
-                            "Foreign bank does not exist ({})",
-                            local_bank
-                        )),
-                    });
+                    self.ledger.entries.insert(
+                        msg.header,
+                        LedgerEntry::Error(format!("Foreign bank does not exist ({})", local_bank)),
+                    );
                 }
             }
-            LedgerType::Error(err) => {
-                tracing::debug!("ledger error (id={}) - {}", entry.id, err);
-                self.ledger.entries.push(LedgerEntry {
-                    id: entry.id,
-                    entry: LedgerType::Error(err),
-                });
+            LedgerEntry::Error(err) => {
+                tracing::debug!("ledger error (id={}) - {}", msg.header.id, err);
+                self.ledger
+                    .entries
+                    .insert(msg.header, LedgerEntry::Error(err));
             }
         }
     }
