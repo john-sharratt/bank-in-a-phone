@@ -89,7 +89,7 @@ impl LocalApp {
 
                         if enter_pressed || res.response.lost_focus() {
                             enter_pressed = false;
-                            focus_to = true;
+                            focus_transfer = true;
                         }
                     });
 

@@ -1,0 +1,14 @@
+[Unit]
+Description=Immutable Bank Daemon
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+ExecStart=/usr/bin/immutable-bank-ledger --http-port 80
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

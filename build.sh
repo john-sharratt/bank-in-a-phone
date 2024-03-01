@@ -2,6 +2,8 @@
 cd crates/web
 trunk build --release
 cd ../..
-git add crates/web/dist
-git commit -a -m "Next release"
-git push
+
+cd crates/backend
+cargo build --release
+cd ../..
+

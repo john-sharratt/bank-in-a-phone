@@ -45,8 +45,6 @@ impl LocalApp {
                 ui.horizontal(|ui| {
                     ui.label("Bank: ");
 
-                    let is_ok = is_username_ok(self);
-
                     let res = egui::ComboBox::from_id_source("select_login")
                         .selected_text(format!("{}", self.username))
                         .show_ui(ui, |ui| {
