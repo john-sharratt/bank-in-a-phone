@@ -9,7 +9,7 @@ pub struct Opts {
     #[clap(long, default_value = "/opt/ledger.log")]
     pub data_path: PathBuf,
     /// Seconds between saving the ledger to disk
-    #[clap(long, default_value = "30")]
+    #[clap(long, default_value = "10")]
     pub save_frequency: u64,
     /// Verbosity of the logging
     #[command(flatten)]
