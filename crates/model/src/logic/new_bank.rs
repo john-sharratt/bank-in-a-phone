@@ -51,7 +51,7 @@ impl Ledger {
             LedgerForBank {
                 broker_secret: broker_secret.clone(),
                 bank_secret: req.secret.clone(),
-                entries: Vec::new(),
+                entries: Default::default(),
             },
         );
 

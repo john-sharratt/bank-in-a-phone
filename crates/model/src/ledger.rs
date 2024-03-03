@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -16,13 +17,13 @@ use crate::{
 pub struct LedgerForBank {
     pub broker_secret: LedgerSecret,
     pub bank_secret: LedgerSecret,
-    pub entries: Vec<LedgerMessage>,
+    pub entries: IndexMap<LedgerSignature, LedgerMessage>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct LedgerBrokerHeader {
-    pub index: u64,
     pub bank_id: BankId,
+    pub prev_signature: LedgerSignature,
     pub bank_signature: LedgerSignature,
 }
 
@@ -39,7 +40,7 @@ impl LedgerForBank {
             .iter()
             .into_iter()
             .rev()
-            .filter_map(|m| {
+            .filter_map(|(_, m)| {
                 if let LedgerEntry::UpdateBank(bank) = &m.entry {
                     Some(bank)
                 } else if let LedgerEntry::NewBank { bank, .. } = &m.entry {
@@ -54,6 +55,13 @@ impl LedgerForBank {
     pub fn account(&self, account: AccountType) -> Option<&Account> {
         self.bank()
             .and_then(|bank| bank.accounts.iter().filter(|a| a.type_ == account).next())
+    }
+
+    pub fn tail_signature(&self) -> LedgerSignature {
+        self.entries
+            .last()
+            .map(|(e, _)| e.clone())
+            .unwrap_or_else(|| LedgerSignature::ZERO)
     }
 }
 
@@ -84,7 +92,7 @@ impl Ledger {
         ID: Into<BankId>,
     {
         self.ledger_for(bank_id)
-            .map(|b| b.entries.iter().collect::<Vec<_>>())
+            .map(|b| b.entries.iter().map(|e| e.1).collect::<Vec<_>>())
             .unwrap_or_default()
     }
 
@@ -93,7 +101,7 @@ impl Ledger {
         ID: Into<BankId>,
     {
         self.ledger_mut_for(bank_id)
-            .map(|b| b.entries.iter_mut().collect::<Vec<_>>())
+            .map(|b| b.entries.iter_mut().map(|e| e.1).collect::<Vec<_>>())
             .unwrap_or_default()
     }
 

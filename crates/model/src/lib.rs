@@ -11,3 +11,4 @@ pub mod signature;
 pub mod transaction;
 pub mod password_hash;
 pub mod base64_array;
+pub mod pretty;

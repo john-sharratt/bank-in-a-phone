@@ -12,11 +12,11 @@ use crate::{
 
 impl LocalApp {
     pub fn compute_password_hash(&self) -> PasswordHash {
-        PasswordHash::from_password(&self.username, &self.password)
+        PasswordHash::from_password(&self.username.to_lowercase(), &self.password)
     }
 
     pub fn new_bank(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
-        let bank_id = BankId::from(self.username.clone());
+        let bank_id = BankId::from(self.username.to_lowercase());
         if self.banks.contains_key(&bank_id) {
             self.show_dialog(
                 ui,
@@ -30,7 +30,7 @@ impl LocalApp {
         let secret = LedgerSecret::new();
         let password_hash = self.compute_password_hash();
 
-        let bank = Bank::new(self.username.clone().into(), password_hash.clone());
+        let bank = Bank::new(self.username.to_lowercase().into(), password_hash.clone());
         self.start_post(
             "new-bank",
             RequestNewBank {

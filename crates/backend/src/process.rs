@@ -15,46 +15,45 @@ impl GeneralStateInner {
             .entry(msg.header.bank_id.clone())
             .or_insert_with(|| LedgerForBank {
                 broker_secret: BROKER_SECRET.clone(),
-                bank_secret: LedgerSecret::new(),
-                entries: Vec::new(),
+                bank_secret: if let LedgerEntry::NewBank { bank_secret, .. } = &msg.entry {
+                    bank_secret.clone()
+                } else {
+                    LedgerSecret::new()
+                },
+                entries: Default::default(),
             });
 
         // Check if the message is a duplicate
-        if msg.header.index <= ledger.entries.len() as u64 {
-            tracing::debug!("Duplicate message: {:?}", msg.entry);
+        if ledger.entries.contains_key(&msg.broker_signature) {
+            tracing::debug!("Duplicate message: {}", msg.entry);
             return false;
         }
 
-        // We establish the bank secret if it is not already established
-        if ledger.entries.is_empty() {
-            if let LedgerEntry::NewBank { bank_secret, .. } = &msg.entry {
-                ledger.bank_secret = bank_secret.clone();
-            }
-        }
-
         // It has to be the next entry in the list or we have split brain
-        if ledger.entries.len() as u64 != msg.header.index {
+        if ledger.tail_signature() != msg.header.prev_signature {
             tracing::warn!(
                 "Split brain: {} vs {}",
-                ledger.entries.len(),
-                msg.header.index
+                ledger.tail_signature(),
+                msg.broker_signature
             );
             return false;
         }
 
         // Validate the message
         if ledger.bank_secret.sign(&msg.entry) != msg.header.bank_signature {
-            tracing::warn!("Invalid bank signature: {:?}", msg.entry);
+            tracing::warn!("Invalid bank signature: {}", msg.entry);
             return false;
         }
         if ledger.broker_secret.sign(&msg.header) != msg.broker_signature {
-            tracing::warn!("Invalid bank signature: {:?}", msg.entry);
+            tracing::warn!("Invalid bank signature: {}", msg.entry);
             return false;
         }
 
         // Insert the entry
-        tracing::info!("Recorded entry: {:?}", msg.entry);
-        ledger.entries.push(msg.clone());
+        tracing::info!("Recovered entry: {}", msg.entry);
+        ledger
+            .entries
+            .insert(msg.broker_signature.clone(), msg.clone());
         true
     }
 }

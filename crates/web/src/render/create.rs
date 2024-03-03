@@ -64,6 +64,7 @@ impl LocalApp {
                                 }
                             })
                             .ui(ui);
+                        self.username = self.username.to_lowercase();
 
                         if matches!(self.focus_on, Some(FocusOn::Username)) {
                             if !is_mobile(ui) {

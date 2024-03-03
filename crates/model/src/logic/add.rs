@@ -29,20 +29,20 @@ impl Ledger {
             return Err(anyhow::anyhow!("Invalid bank signature"));
         }
         let header = LedgerBrokerHeader {
-            index: ledger.entries.len() as u64,
             bank_id,
+            prev_signature: ledger.tail_signature(),
             bank_signature,
         };
-
+        let broker_signature = ledger.broker_secret.sign(&header);
         let msg = LedgerMessage {
-            broker_signature: ledger.broker_secret.sign(&header),
+            broker_signature: broker_signature.clone(),
             header,
             entry,
         };
         if let Some(on_msg) = on_msg {
             on_msg(&msg);
         }
-        ledger.entries.push(msg);
+        ledger.entries.insert(broker_signature, msg);
         Ok(())
     }
 }

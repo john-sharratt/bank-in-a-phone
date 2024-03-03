@@ -37,7 +37,7 @@ impl LocalApp {
                         .or_insert_with(|| LedgerForBank {
                             broker_secret: LedgerSecret::new(),
                             bank_secret: bank_secret.clone(),
-                            entries: Vec::new(),
+                            entries: Default::default(),
                         });
                 }
             }
@@ -57,13 +57,14 @@ impl LocalApp {
             }
 
             // Add it to the ledger, unless it already exists
-            if msg.header.index < ledger.entries.len() as u64 {
+            if ledger.entries.contains_key(&msg.broker_signature) {
                 log::debug!("Duplicate message {:?}", msg.header);
-            } else if ledger.entries.len() as u64 == msg.header.index {
+            } else if ledger.tail_signature() == msg.header.prev_signature {
                 log::debug!("Received message {:?}", msg);
-                ledger.entries.push(msg);
+                ledger.entries.insert(msg.broker_signature.clone(), msg);
             } else {
-                log::debug!("Split brain {:?}", msg.header);
+                log::debug!("{:?}", ledger);
+                log::error!("Split brain {:?}", msg.header);
             }
         }
     }

@@ -54,14 +54,14 @@ impl GeneralState {
                     .or_insert_with(|| LedgerForBank {
                         broker_secret: BROKER_SECRET.clone(),
                         bank_secret: bank_secret.clone(),
-                        entries: Vec::new(),
+                        entries: Default::default(),
                     }),
                 _ => match inner.ledger.banks.get_mut(&msg.header.bank_id) {
                     Some(l) => l,
                     None => continue,
                 },
             };
-            ledger.entries.push(msg);
+            ledger.entries.insert(msg.broker_signature.clone(), msg);
         }
 
         let state = GeneralState {
@@ -94,7 +94,7 @@ impl GeneralState {
                         .ledger
                         .banks
                         .iter()
-                        .flat_map(|b| b.1.entries.iter())
+                        .flat_map(|b| b.1.entries.iter().map(|e| e.1))
                         .cloned()
                         .collect::<Vec<_>>()
                 });

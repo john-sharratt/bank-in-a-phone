@@ -50,7 +50,7 @@ impl LocalApp {
 
                         let is_ok = self
                             .banks
-                            .contains_key(&BankId::from(self.username.clone()));
+                            .contains_key(&BankId::from(self.username.to_lowercase()));
                         let is_username_ok = is_username_ok(self);
                         let res = TextEdit::singleline(&mut self.username)
                             .text_color(if is_ok {
@@ -69,6 +69,7 @@ impl LocalApp {
                                 }
                             })
                             .ui(ui);
+                        self.username = self.username.to_lowercase();
 
                         if matches!(self.focus_on, Some(FocusOn::Username)) {
                             if !is_mobile(ui) {

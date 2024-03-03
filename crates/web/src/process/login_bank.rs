@@ -11,7 +11,7 @@ use crate::{
 
 impl LocalApp {
     pub fn login_bank(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
-        let bank_id = BankId::from(self.username.clone());
+        let bank_id = BankId::from(self.username.to_lowercase());
         let password_hash = self.compute_password_hash();
         if let Some(bank) = self.banks.get_mut(&bank_id) {
             self.password.clear();
@@ -66,7 +66,7 @@ impl LocalApp {
         }
 
         self.session
-            .replace(LocalSession::new(self.username.clone()));
+            .replace(LocalSession::new(self.username.to_lowercase()));
         self.mode = Mode::Summary;
 
         self.save_state(frame);

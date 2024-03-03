@@ -127,17 +127,18 @@ impl Ledger {
             transaction: req.trans.clone(),
         };
         let header = LedgerBrokerHeader {
-            index: ledger.entries.len() as u64,
             bank_id: req.trans.from.bank.clone(),
+            prev_signature: ledger.tail_signature(),
             bank_signature: ledger.bank_secret.sign(&entry),
         };
+        let broker_signature = ledger.broker_secret.sign(&header);
         let msg = LedgerMessage {
-            broker_signature: ledger.broker_secret.sign(&entry),
+            broker_signature: broker_signature.clone(),
             header,
             entry,
         };
         on_msg(&msg);
-        ledger.entries.push(msg);
+        ledger.entries.insert(broker_signature, msg);
 
         // If they are different banks
         if req.trans.from.bank != req.trans.to.bank {
@@ -146,17 +147,18 @@ impl Ledger {
                 transaction: req.trans.clone(),
             };
             let header = LedgerBrokerHeader {
-                index: ledger.entries.len() as u64,
                 bank_id: req.trans.to.bank.clone(),
+                prev_signature: ledger.tail_signature(),
                 bank_signature: ledger.bank_secret.sign(&entry),
             };
+            let broker_signature = ledger.broker_secret.sign(&header);
             let msg = LedgerMessage {
-                broker_signature: ledger.broker_secret.sign(&entry),
+                broker_signature: broker_signature.clone(),
                 header,
                 entry,
             };
             on_msg(&msg);
-            ledger.entries.push(msg);
+            ledger.entries.insert(broker_signature, msg);
         }
 
         // There, the money is transferred!
