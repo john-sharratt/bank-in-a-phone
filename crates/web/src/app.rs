@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use egui::Visuals;
+
 use crate::{
     render::Mode,
     sound::play::play_intro,
@@ -55,6 +57,15 @@ impl eframe::App for LocalApp {
 
         self.poll();
 
+        if self.init2 == false {
+            if self.dark_mode {
+                ctx.style_mut(|s| s.visuals = Visuals::dark())
+            } else {
+                ctx.style_mut(|s| s.visuals = Visuals::light())
+            }
+            self.init2 = true;
+        }
+
         let is_web = cfg!(target_arch = "wasm32");
         if !is_web {
             egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -94,6 +105,11 @@ impl eframe::App for LocalApp {
                 ui.horizontal(|ui| {
                     egui::widgets::global_dark_light_mode_buttons(ui);
 
+                    if self.dark_mode != ui.style().visuals.dark_mode {
+                        self.dark_mode = ui.style().visuals.dark_mode;
+                        self.save_state(frame);
+                    }
+
                     ui.add_space(10.0);
 
                     if ui.button("Logout").clicked() {
@@ -111,7 +127,7 @@ impl eframe::App for LocalApp {
 
                     if ui.button("Reset").clicked() {
                         *self = Self::default();
-                        self.init = true;
+                        self.init1 = true;
 
                         let _ = play_intro();
 
@@ -123,9 +139,9 @@ impl eframe::App for LocalApp {
             });
         });
 
-        if self.init == false {
+        if self.init1 == false {
             if self.init(frame).is_ok() {
-                self.init = true;
+                self.init1 = true;
             }
         }
     }

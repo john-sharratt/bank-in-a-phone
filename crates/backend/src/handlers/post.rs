@@ -38,7 +38,7 @@ pub async fn post_handler(
                 .await
                 .ledger
                 .update_bank(req, move |msg| state_inner.broadcast(msg))?;
-            tracing::info!("UpdateBank-Response: {:?}", res);
+            tracing::info!("UpdateBank-Response: {}", res);
             serde_json::to_vec_pretty(&res)?
         }
         (hyper::Method::POST, "/new-bank") => {
@@ -51,13 +51,13 @@ pub async fn post_handler(
                     .await
                     .ledger
                     .new_bank(&BROKER_SECRET, req, move |msg| state_inner.broadcast(msg))?;
-            tracing::info!("NewBank-Response: {:?}", res);
+            tracing::info!("NewBank-Response: {}", res);
             serde_json::to_vec_pretty(&res)?
         }
         (hyper::Method::POST, "/copy-bank") => {
             let req = serde_json::from_slice(&data)?;
             let res = state.inner.lock().await.ledger.copy_bank(req)?;
-            tracing::info!("CopyBank-Response: {:?}", res);
+            tracing::info!("CopyBank-Response: {}", res);
             serde_json::to_vec_pretty(&res)?
         }
         (hyper::Method::POST, "/transfer") => {
@@ -69,7 +69,7 @@ pub async fn post_handler(
                 .await
                 .ledger
                 .transfer(req, move |msg| state_inner.broadcast(msg))?;
-            tracing::info!("Transfer-Response: {:?}", res);
+            tracing::info!("Transfer-Response: {}", res);
             serde_json::to_vec_pretty(&res)?
         }
         // Anything else handler

@@ -2,7 +2,7 @@ use egui::{Align2, Key, RichText, TextEdit, Vec2, Widget};
 
 use crate::state::local_app::{FocusOn, LocalApp};
 
-use super::Mode;
+use super::{login::is_mobile, Mode};
 
 impl LocalApp {
     pub fn render_send_money(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
@@ -42,7 +42,9 @@ impl LocalApp {
 
                         if self.focus_on == Some(FocusOn::Amount) {
                             self.focus_on.take();
-                            res.request_focus();
+                            if !is_mobile(ui) {
+                                res.request_focus();
+                            }
                         }
 
                         if enter_pressed || res.lost_focus() {
@@ -69,7 +71,9 @@ impl LocalApp {
                         let res = egui::TextEdit::singleline(&mut self.to_bank).ui(ui);
 
                         if focus_to {
-                            res.request_focus();
+                            if !is_mobile(ui) {
+                                res.request_focus();
+                            }
                         }
 
                         if enter_pressed || res.lost_focus() {
@@ -91,7 +95,9 @@ impl LocalApp {
                         let res = ui.button(RichText::new("Send").strong());
 
                         if focus_send {
-                            res.request_focus();
+                            if !is_mobile(ui) {
+                                res.request_focus();
+                            }
                         }
 
                         if res.clicked() {

@@ -3,7 +3,7 @@ use immutable_bank_model::account::AccountType;
 
 use crate::state::local_app::{FocusOn, LocalApp};
 
-use super::Mode;
+use super::{login::is_mobile, Mode};
 
 impl LocalApp {
     pub fn render_move_money(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
@@ -44,7 +44,9 @@ impl LocalApp {
 
                         if self.focus_on == Some(FocusOn::Amount) {
                             self.focus_on.take();
-                            res.request_focus();
+                            if !is_mobile(ui) {
+                                res.request_focus();
+                            }
                         }
 
                         self.transfer_amount = (transfer_amount * 100.0) as u64;
@@ -96,7 +98,9 @@ impl LocalApp {
                         let res = ui.button(RichText::new("Transfer").strong());
 
                         if focus_transfer {
-                            res.request_focus();
+                            if !is_mobile(ui) {
+                                res.request_focus();
+                            }
                         }
 
                         if res.clicked() {

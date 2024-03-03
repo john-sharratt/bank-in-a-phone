@@ -2,7 +2,7 @@ use egui::{Align2, Color32, Key, TextEdit, Vec2, Widget};
 
 use crate::{state::local_app::FocusOn, LocalApp};
 
-use super::Mode;
+use super::{login::is_mobile, Mode};
 
 fn is_ok(app: &LocalApp) -> bool {
     is_username_ok(app) && is_password_ok(app) && is_confirm_password_ok(app)
@@ -66,7 +66,9 @@ impl LocalApp {
                             .ui(ui);
 
                         if matches!(self.focus_on, Some(FocusOn::Username)) {
-                            res.request_focus();
+                            if !is_mobile(ui) {
+                                res.request_focus();
+                            }
                             self.focus_on.take();
                             self.save_state(frame);
                         }
@@ -99,7 +101,9 @@ impl LocalApp {
                             .ui(ui);
 
                         if focus_password {
-                            res.request_focus();
+                            if !is_mobile(ui) {
+                                res.request_focus();
+                            }
                         }
 
                         if enter_pressed && res.lost_focus() {
@@ -130,7 +134,9 @@ impl LocalApp {
                             .ui(ui);
 
                         if focus_confirm_password {
-                            res.request_focus();
+                            if !is_mobile(ui) {
+                                res.request_focus();
+                            }
                         }
 
                         if enter_pressed && res.lost_focus() {

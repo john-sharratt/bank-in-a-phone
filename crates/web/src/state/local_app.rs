@@ -50,6 +50,7 @@ pub struct LocalApp {
     pub confirm_password: String,
     pub mode: Mode,
     pub focus_on: Option<FocusOn>,
+    pub dark_mode: bool,
 
     pub banks: HashMap<BankId, BankWithSecrets>,
 
@@ -68,7 +69,9 @@ pub struct LocalApp {
     >,
 
     #[serde(skip, default)]
-    pub init: bool,
+    pub init1: bool,
+    #[serde(skip, default)]
+    pub init2: bool,
 
     pub from_account: AccountType,
     pub to_account: AccountType,
@@ -110,6 +113,7 @@ impl Default for LocalApp {
             confirm_password: Default::default(),
             mode: Mode::Login,
             focus_on: Some(FocusOn::Username),
+            dark_mode: true,
 
             banks: Default::default(),
             session: None,
@@ -117,7 +121,8 @@ impl Default for LocalApp {
             pending: None,
             pending_callback: None,
 
-            init: false,
+            init1: false,
+            init2: false,
             last_reconnects: 0,
 
             from_account: AccountType::Wallet,

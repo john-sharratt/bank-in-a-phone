@@ -17,6 +17,10 @@ fn is_password_ok(app: &LocalApp) -> bool {
     app.password.len() >= 5
 }
 
+pub fn is_mobile(ui: &egui::Ui) -> bool {
+    ui.ctx().screen_rect().width() <= 960.0
+}
+
 impl LocalApp {
     fn login(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         if is_ok(self) {
@@ -67,7 +71,9 @@ impl LocalApp {
                             .ui(ui);
 
                         if matches!(self.focus_on, Some(FocusOn::Username)) {
-                            res.request_focus();
+                            if !is_mobile(ui) {
+                                res.request_focus();
+                            }
                             self.focus_on.take();
                             self.save_state(frame);
                         }
@@ -102,11 +108,15 @@ impl LocalApp {
                             .ui(ui);
 
                         if focus_password {
-                            res.request_focus();
+                            if !is_mobile(ui) {
+                                res.request_focus();
+                            }
                         }
 
                         if matches!(self.focus_on, Some(FocusOn::Password)) {
-                            res.request_focus();
+                            if !is_mobile(ui) {
+                                res.request_focus();
+                            }
                             self.focus_on.take();
                             self.save_state(frame);
                         }

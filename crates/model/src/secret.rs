@@ -2,13 +2,18 @@ use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sha256::digest;
 
+use crate::base64_array;
 use crate::signature::LedgerSignature;
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LedgerSecret {
+    #[serde(with = "base64_array")]
     data1: [u8; 32],
+    #[serde(with = "base64_array")]
     data2: [u8; 32],
+    #[serde(with = "base64_array")]
     data3: [u8; 32],
+    #[serde(with = "base64_array")]
     data4: [u8; 32],
 }
 
