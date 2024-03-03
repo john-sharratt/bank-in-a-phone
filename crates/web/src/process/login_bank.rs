@@ -1,7 +1,13 @@
 use egui::Ui;
-use immutable_bank_model::bank_id::BankId;
+use immutable_bank_model::{
+    bank_id::BankId, requests::copy_bank::RequestCopyBank, responses::copy_bank::ResponseCopyBank,
+};
 
-use crate::{render::Mode, state::local_app::{FocusOn, LocalSession}, LocalApp};
+use crate::{
+    render::Mode,
+    state::local_app::{BankWithSecrets, FocusOn, LocalSession},
+    LocalApp,
+};
 
 impl LocalApp {
     pub fn login_bank(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
@@ -17,8 +23,45 @@ impl LocalApp {
                 return;
             }
         } else {
-            self.show_dialog(ui, "Forbidden", "No local bank of this name on the device");
-            self.session.take();
+            self.start_post(
+                "copy-bank",
+                RequestCopyBank {
+                    password: password_hash.clone(),
+                    bank: bank_id.clone(),
+                },
+                move |res: ResponseCopyBank, app: &mut LocalApp, frame: &mut eframe::Frame| {
+                    match res {
+                        ResponseCopyBank::Copied { ledger } => {
+                            app.banks.insert(
+                                bank_id.clone(),
+                                BankWithSecrets {
+                                    bank_id: bank_id.clone(),
+                                    secret: ledger.bank_secret.clone(),
+                                    password: password_hash,
+                                },
+                            );
+                            app.ledger.banks.insert(bank_id.clone(), ledger);
+                            app.session.replace(LocalSession::new(bank_id.clone()));
+                            app.mode = Mode::Summary;
+                            app.save_state(frame);
+                        }
+                        ResponseCopyBank::Denied { err_msg } => {
+                            app.show_dialog_lite("Forbidden", &err_msg);
+                            app.session.take();
+                            app.mode = Mode::Login;
+                        }
+                        ResponseCopyBank::DoesNotExist { bank_id } => {
+                            app.show_dialog_lite(
+                                "Invalid Bank",
+                                &format!("Bank does not exist - {:?}", bank_id),
+                            );
+                            app.session.take();
+                            app.mode = Mode::Login;
+                        }
+                    }
+                },
+            );
+
             return;
         }
 

@@ -1,4 +1,4 @@
-use http::{HeaderName, StatusCode};
+use http::StatusCode;
 use http_body_util::Full;
 use hyper::{body::Bytes, Request, Response};
 use include_dir::{include_dir, Dir};
@@ -57,16 +57,6 @@ pub async fn get_handler(
         http::header::CONNECTION,
         http::HeaderValue::from_str("Keep-Alive")?,
     );
-    res.headers_mut().insert(
-        HeaderName::from_static("Keep-Alive"),
-        http::HeaderValue::from_str("timeout=2, max=100")?,
-    );
-    /*
-    res.headers_mut().insert(
-        http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
-        http::HeaderValue::from_str("*")?,
-    );
-    */
     res.headers_mut().insert(
         http::header::CONTENT_TYPE,
         http::HeaderValue::from_str(&meme.to_string())?,

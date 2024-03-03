@@ -54,6 +54,12 @@ pub async fn post_handler(
             tracing::info!("NewBank-Response: {:?}", res);
             serde_json::to_vec_pretty(&res)?
         }
+        (hyper::Method::POST, "/copy-bank") => {
+            let req = serde_json::from_slice(&data)?;
+            let res = state.inner.lock().await.ledger.copy_bank(req)?;
+            tracing::info!("CopyBank-Response: {:?}", res);
+            serde_json::to_vec_pretty(&res)?
+        }
         (hyper::Method::POST, "/transfer") => {
             let req = serde_json::from_slice(&data)?;
             let state_inner = state.clone();

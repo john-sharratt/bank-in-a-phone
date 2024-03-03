@@ -8,7 +8,7 @@ fn is_ok(app: &LocalApp) -> bool {
     is_username_ok(app) && is_password_ok(app) && is_confirm_password_ok(app)
 }
 
-fn is_username_ok(app: &LocalApp) -> bool {
+pub fn is_username_ok(app: &LocalApp) -> bool {
     app.username.len() >= 5
 }
 
@@ -51,9 +51,17 @@ impl LocalApp {
                         let is_ok = is_username_ok(self);
                         let res = TextEdit::singleline(&mut self.username)
                             .text_color(if is_ok {
-                                Color32::GREEN
+                                if ui.style().visuals.dark_mode {
+                                    Color32::GREEN
+                                } else {
+                                    Color32::DARK_GREEN
+                                }
                             } else {
-                                Color32::LIGHT_RED
+                                if ui.style().visuals.dark_mode {
+                                    Color32::LIGHT_RED
+                                } else {
+                                    Color32::DARK_RED
+                                }
                             })
                             .ui(ui);
 
@@ -76,9 +84,17 @@ impl LocalApp {
                         let res = TextEdit::singleline(&mut self.password)
                             .password(true)
                             .text_color(if is_ok {
-                                Color32::GREEN
+                                if ui.style().visuals.dark_mode {
+                                    Color32::GREEN
+                                } else {
+                                    Color32::DARK_GREEN
+                                }
                             } else {
-                                Color32::LIGHT_RED
+                                if ui.style().visuals.dark_mode {
+                                    Color32::LIGHT_RED
+                                } else {
+                                    Color32::DARK_RED
+                                }
                             })
                             .ui(ui);
 
@@ -99,9 +115,17 @@ impl LocalApp {
                         let res = TextEdit::singleline(&mut self.confirm_password)
                             .password(true)
                             .text_color(if is_ok {
-                                Color32::GREEN
+                                if ui.style().visuals.dark_mode {
+                                    Color32::GREEN
+                                } else {
+                                    Color32::DARK_GREEN
+                                }
                             } else {
-                                Color32::LIGHT_RED
+                                if ui.style().visuals.dark_mode {
+                                    Color32::LIGHT_RED
+                                } else {
+                                    Color32::DARK_RED
+                                }
                             })
                             .ui(ui);
 

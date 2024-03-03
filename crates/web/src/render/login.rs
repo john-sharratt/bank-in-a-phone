@@ -47,11 +47,22 @@ impl LocalApp {
                         let is_ok = self
                             .banks
                             .contains_key(&BankId::from(self.username.clone()));
+                        let is_username_ok = is_username_ok(self);
                         let res = TextEdit::singleline(&mut self.username)
                             .text_color(if is_ok {
                                 Color32::GREEN
+                            } else if is_username_ok {
+                                if ui.style().visuals.dark_mode {
+                                    Color32::LIGHT_YELLOW
+                                } else {
+                                    Color32::DARK_GRAY
+                                }
                             } else {
-                                Color32::LIGHT_RED
+                                if ui.style().visuals.dark_mode {
+                                    Color32::LIGHT_RED
+                                } else {
+                                    Color32::DARK_RED
+                                }
                             })
                             .ui(ui);
 
@@ -76,9 +87,17 @@ impl LocalApp {
                         let res = TextEdit::singleline(&mut self.password)
                             .password(true)
                             .text_color(if is_ok {
-                                Color32::GREEN
+                                if ui.style().visuals.dark_mode {
+                                    Color32::GREEN
+                                } else {
+                                    Color32::DARK_GREEN
+                                }
                             } else {
-                                Color32::LIGHT_RED
+                                if ui.style().visuals.dark_mode {
+                                    Color32::LIGHT_RED
+                                } else {
+                                    Color32::DARK_RED
+                                }
                             })
                             .ui(ui);
 

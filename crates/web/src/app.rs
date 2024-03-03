@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::{
     render::Mode,
     sound::play::play_intro,
@@ -49,6 +51,8 @@ impl eframe::App for LocalApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        ctx.request_repaint_after(Duration::from_millis(500));
+
         self.poll();
 
         let is_web = cfg!(target_arch = "wasm32");

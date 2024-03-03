@@ -24,6 +24,7 @@ impl LocalApp {
                 "Bank already exists locally, login instead",
             );
             self.session.take();
+            self.mode = Mode::Login;
             return;
         }
         let secret = LedgerSecret::new();
@@ -51,6 +52,8 @@ impl LocalApp {
                     app.save_state(frame);
                 }
                 ResponseCreateBank::AlreadyExists { err_msg } => {
+                    app.session.take();
+                    app.mode = Mode::Login;
                     app.show_dialog_lite("Bank already exists", &err_msg);
                 }
             },
