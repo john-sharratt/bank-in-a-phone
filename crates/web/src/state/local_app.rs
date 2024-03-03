@@ -108,7 +108,7 @@ impl Default for LocalApp {
             username: Default::default(),
             password: Default::default(),
             confirm_password: Default::default(),
-            mode: Mode::NewAccount,
+            mode: Mode::Login,
             focus_on: Some(FocusOn::Username),
 
             banks: Default::default(),
