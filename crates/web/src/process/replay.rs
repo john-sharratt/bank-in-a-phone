@@ -1,5 +1,3 @@
-use immutable_bank_model::header::LedgerMessage;
-
 use crate::LocalApp;
 
 impl LocalApp {
@@ -9,15 +7,15 @@ impl LocalApp {
         for bank in banks {
             // Get all the entries related to this bank and play them down the web socket
             let entries = self.ledger.entries_for(bank.as_str());
-            for (header, entry) in entries {
-                let msg = LedgerMessage {
-                    header: header.clone(),
-                    entry: entry.clone(),
-                };
-
+            for msg in entries {
                 log::info!("Replaying message {:?}", msg);
                 let data = bincode::serialize(&msg)?;
-                self.ws.send(data);
+
+                let ws = match self.session.as_mut() {
+                    Some(ws) => &mut ws.ws,
+                    None => continue,
+                };
+                ws.send(data);
             }
         }
         Ok(())

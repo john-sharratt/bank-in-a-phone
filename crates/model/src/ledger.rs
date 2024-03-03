@@ -1,67 +1,117 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    account::AccountRef, header::LedgerHeader, ledger_type::LedgerEntry, transaction::Transaction,
+    account::{Account, AccountType},
+    bank::Bank,
+    bank_id::BankId,
+    ledger_type::LedgerEntry,
+    secret::LedgerSecret,
+    signature::LedgerSignature,
+    transaction::Transaction,
 };
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct LedgerForBank {
+    pub broker_secret: LedgerSecret,
+    pub bank_secret: LedgerSecret,
+    pub entries: Vec<LedgerMessage>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct LedgerBrokerHeader {
+    pub index: u64,
+    pub bank_id: BankId,
+    pub bank_signature: LedgerSignature,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct LedgerMessage {
+    pub header: LedgerBrokerHeader,
+    pub broker_signature: LedgerSignature,
+    pub entry: LedgerEntry,
+}
+
+impl LedgerForBank {
+    pub fn bank(&self) -> Option<&Bank> {
+        self.entries
+            .iter()
+            .into_iter()
+            .rev()
+            .filter_map(|m| {
+                if let LedgerEntry::UpdateBank(bank) = &m.entry {
+                    Some(bank)
+                } else if let LedgerEntry::NewBank { bank, .. } = &m.entry {
+                    Some(bank)
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    pub fn account(&self, account: AccountType) -> Option<&Account> {
+        self.bank()
+            .and_then(|bank| bank.accounts.iter().filter(|a| a.type_ == account).next())
+    }
+}
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct Ledger {
-    pub entries: BTreeMap<LedgerHeader, LedgerEntry>,
+    pub banks: HashMap<BankId, LedgerForBank>,
 }
 
 impl Ledger {
-    pub fn entries_for(&self, name: &str) -> Vec<(&LedgerHeader, &LedgerEntry)> {
-        self.entries
-            .iter()
-            .filter_map(|(h, e)| match e {
-                LedgerEntry::Transfer {
-                    local_bank,
-                    transaction,
-                } => {
-                    if local_bank.as_str() == name {
-                        Some((h, e))
-                    } else if let AccountRef::Foreign { bank, .. } = &transaction.from {
-                        if bank.as_str() == name {
-                            Some((h, e))
-                        } else {
-                            None
-                        }
-                    } else if let AccountRef::Foreign { bank, .. } = &transaction.to {
-                        if bank.as_str() == name {
-                            Some((h, e))
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                }
-                LedgerEntry::NewBank(bank) => {
-                    if bank.owner.as_str() == name {
-                        Some((h, e))
-                    } else {
-                        None
-                    }
-                }
-                LedgerEntry::UpdateBank(bank) => {
-                    if bank.owner.as_str() == name {
-                        Some((h, e))
-                    } else {
-                        None
-                    }
-                }
-                LedgerEntry::Error(_) => None,
-            })
-            .collect::<Vec<_>>()
+    pub fn ledger_for<ID>(&self, bank_id: ID) -> Option<&LedgerForBank>
+    where
+        ID: Into<BankId>,
+    {
+        let bank_id: BankId = bank_id.into();
+        self.banks.get(&bank_id).map(|ledger| ledger)
     }
 
-    pub fn transactions_for(&self, name: &str) -> Vec<&Transaction> {
-        self.entries_for(name)
+    pub fn ledger_mut_for<ID>(&mut self, bank_id: ID) -> Option<&mut LedgerForBank>
+    where
+        ID: Into<BankId>,
+    {
+        let bank_id: BankId = bank_id.into();
+        self.banks.get_mut(&bank_id).map(|ledger| ledger)
+    }
+
+    pub fn entries_for<ID>(&self, bank_id: ID) -> Vec<&LedgerMessage>
+    where
+        ID: Into<BankId>,
+    {
+        self.ledger_for(bank_id)
+            .map(|b| b.entries.iter().collect::<Vec<_>>())
+            .unwrap_or_default()
+    }
+
+    pub fn entries_mut_for<ID>(&mut self, bank_id: ID) -> Vec<&mut LedgerMessage>
+    where
+        ID: Into<BankId>,
+    {
+        self.ledger_mut_for(bank_id)
+            .map(|b| b.entries.iter_mut().collect::<Vec<_>>())
+            .unwrap_or_default()
+    }
+
+    pub fn bank<ID>(&self, bank_id: ID) -> Option<&Bank>
+    where
+        ID: Into<BankId>,
+    {
+        self.ledger_for(bank_id).and_then(|b| b.bank())
+    }
+
+    pub fn transactions_for<ID>(&self, bank_id: ID) -> Vec<&Transaction>
+    where
+        ID: Into<BankId>,
+    {
+        self.entries_for(bank_id)
             .into_iter()
-            .filter_map(|(_, e)| {
-                if let LedgerEntry::Transfer { transaction, .. } = e {
+            .filter_map(|e| {
+                if let LedgerEntry::Transaction { transaction, .. } = &e.entry {
                     Some(transaction)
                 } else {
                     None

@@ -13,7 +13,7 @@ impl LocalApp {
             .outer_margin(Margin::same(3.0))
             .stroke(Stroke::new(1.0, Color32::DARK_GRAY))
             .show(ui, |ui| {
-                let account = self.bank_mut().and_then(|s| s.accounts.get_mut(index));
+                let account = self.bank().and_then(|s| s.accounts.get(index));
                 let account = match account {
                     Some(account) => account,
                     None => return,
@@ -46,10 +46,9 @@ impl LocalApp {
                                 AccountType::Wallet => AccountType::Savings,
                                 _ => AccountType::Wallet,
                             };
-                            self.to_user = Default::default();
+                            self.to_bank = Default::default();
                             self.description.clear();
                             self.mode = Mode::MoveMoney;
-                            self.pending.take();
                             self.focus_on.replace(FocusOn::Amount);
                         }
                     }
@@ -59,10 +58,9 @@ impl LocalApp {
                             self.transfer_amount = 0;
                             self.from_account = AccountType::Wallet;
                             self.to_account = AccountType::Wallet;
-                            self.to_user = Default::default();
+                            self.to_bank = Default::default();
                             self.description.clear();
                             self.mode = Mode::SendMoney;
-                            self.pending.take();
                             self.focus_on.replace(FocusOn::Amount);
                         }
                     }
@@ -71,11 +69,13 @@ impl LocalApp {
     }
 
     pub fn render_bank_summary(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        let name = self
+        let bank_id = self
             .session
+            .as_ref()
+            .map(|s| s.bank_id.clone())
             .clone()
-            .unwrap_or_else(|| "My Bank".to_string());
-        egui::Window::new(name)
+            .unwrap_or_else(|| "My Bank".to_string().into());
+        egui::Window::new(bank_id.as_str())
             .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
             .default_size(Vec2::new(200.0, 600.0))
             .resizable(false)
@@ -115,6 +115,14 @@ impl LocalApp {
                                         .outer_margin(Margin::same(3.0))
                                         .stroke(Stroke::new(1.0, Color32::DARK_GRAY))
                                         .show(ui, |ui| {
+                                            if !transaction.description.is_empty() {
+                                                egui::Label::new(&transaction.description)
+                                                    .selectable(false)
+                                                    .wrap(true)
+                                                    .ui(ui);
+                                                ui.add_space(5.0);
+                                            }
+
                                             ui.horizontal(|ui| {
                                                 egui::Label::new(
                                                     RichText::new("Amount: ").strong(),
@@ -134,7 +142,12 @@ impl LocalApp {
                                                 egui::Label::new(RichText::new("From: ").strong())
                                                     .selectable(false)
                                                     .ui(ui);
-                                                let direction = format!("{}", transaction.from);
+                                                let direction = if transaction.from.bank == bank_id
+                                                {
+                                                    format!("({})", transaction.from.account)
+                                                } else {
+                                                    format!("[{}]", transaction.from.bank)
+                                                };
                                                 egui::Label::new(direction)
                                                     .selectable(false)
                                                     .ui(ui);
@@ -144,19 +157,15 @@ impl LocalApp {
                                                 egui::Label::new(RichText::new("To: ").strong())
                                                     .selectable(false)
                                                     .ui(ui);
-                                                let direction = format!("{}", transaction.to);
+                                                let direction = if transaction.to.bank == bank_id {
+                                                    format!("({})", transaction.to.account)
+                                                } else {
+                                                    format!("[{}]", transaction.to.bank)
+                                                };
                                                 egui::Label::new(direction)
                                                     .selectable(false)
                                                     .ui(ui);
                                             });
-
-                                            if !transaction.description.is_empty() {
-                                                ui.add_space(5.0);
-                                                egui::Label::new(&transaction.description)
-                                                    .selectable(false)
-                                                    .wrap(true)
-                                                    .ui(ui);
-                                            }
                                         });
                                 }
                             });

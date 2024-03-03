@@ -12,3 +12,4 @@ serde = { workspace = true }
 anyhow = { workspace = true }
 rand = { workspace = true }
 sha256 = { workspace = true }
+bincode = { workspace = true }

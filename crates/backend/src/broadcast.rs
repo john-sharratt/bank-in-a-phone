@@ -1,7 +1,7 @@
 use futures_util::{stream::SplitSink, SinkExt};
 use hyper::upgrade::Upgraded;
 use hyper_util::rt::TokioIo;
-use immutable_bank_model::header::LedgerMessage;
+use immutable_bank_model::ledger::LedgerMessage;
 use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
 
 use crate::general_state::GeneralState;
@@ -24,10 +24,8 @@ impl GeneralState {
         });
     }
 
-    pub fn broadcast(&self, msg: LedgerMessage) {
-        tracing::warn!("Broadcast message: {:?}", msg);
-
-        let data = match bincode::serialize(&msg) {
+    pub fn broadcast(&self, msg: &LedgerMessage) {
+        let data = match bincode::serialize(msg) {
             Ok(d) => d,
             Err(err) => {
                 tracing::error!("failed to serialize entry to broadcast - {}", err);

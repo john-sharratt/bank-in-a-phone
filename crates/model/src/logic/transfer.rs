@@ -1,164 +1,165 @@
-use rand::RngCore;
-
 use crate::{
-    account::AccountRef, bank::Bank, header::LedgerHeader, ledger::Ledger,
-    ledger_type::LedgerEntry, transaction::Transaction,
+    ledger::{Ledger, LedgerBrokerHeader, LedgerMessage},
+    ledger_type::LedgerEntry,
+    requests::transfer::RequestTransfer,
+    responses::transfer::ResponseTransfer,
 };
 
 impl Ledger {
     pub fn transfer(
         &mut self,
-        header: LedgerHeader,
-        local_bank: String,
-        trans: Transaction,
-    ) -> anyhow::Result<()> {
-        let mut rand = rand::thread_rng();
-
-        let mut from_bank;
-        let mut to_bank;
-
-        match trans.from.clone() {
-            AccountRef::Local { account } => {
-                if let Some(bank) = self.find_bank(local_bank.clone()) {
-                    from_bank = bank.clone();
-                    match from_bank.find_account(account) {
-                        Some(account) => {
-                            if trans.amount_cents > account.balance_cents {
-                                return Err(anyhow::anyhow!(
-                                    "Insufficient funds - {} vs {}",
-                                    trans.amount_cents,
-                                    account.balance_cents,
-                                ));
-                            }
-                            account.balance_cents -= trans.amount_cents;
-                        }
-                        None => {
-                            return Err(anyhow::anyhow!(
-                                "Bank does not this account type - {}",
-                                account
-                            ));
-                        }
-                    }
-                } else {
-                    return Err(anyhow::anyhow!("Bank does not exist - {}", local_bank));
-                }
+        req: RequestTransfer,
+        mut on_msg: impl FnMut(&LedgerMessage),
+    ) -> anyhow::Result<ResponseTransfer> {
+        // Grab references to the banks we are transferring money between
+        let from_bank = match self.ledger_for(req.trans.from.bank.clone()) {
+            Some(b) => b,
+            None => {
+                log::info!("Transfer-From-Invalid: {:?}", req.trans.from.bank);
+                return Ok(ResponseTransfer::InvalidBank {
+                    bank_id: req.trans.from.bank.clone(),
+                });
             }
-            AccountRef::Foreign {
-                bank: username,
-                account,
-            } => {
-                if let Some(bank) = self.find_bank(username) {
-                    from_bank = bank.clone();
-                    match from_bank.find_account(account) {
-                        Some(account) => {
-                            if trans.amount_cents > account.balance_cents {
-                                return Err(anyhow::anyhow!(
-                                    "Insufficient funds - {} vs {}",
-                                    trans.amount_cents,
-                                    account.balance_cents,
-                                ));
-                            }
-                            account.balance_cents -= trans.amount_cents;
-                        }
-                        None => {
-                            return Err(anyhow::anyhow!(
-                                "Bank does not this account type - {}",
-                                account
-                            ));
-                        }
-                    }
-                } else {
-                    return Err(anyhow::anyhow!("Bank does not exist - {}", local_bank));
-                }
+        };
+        let to_bank = match self.ledger_for(req.trans.to.bank.clone()) {
+            Some(b) => b,
+            None => {
+                log::info!("Transfer-To-Invalid: {:?}", req.trans.to.bank);
+                return Ok(ResponseTransfer::InvalidBank {
+                    bank_id: req.trans.to.bank.clone(),
+                });
             }
-        }
+        };
 
-        match trans.to.clone() {
-            AccountRef::Local { account } => {
-                if let Some(bank) = self.find_bank(local_bank.clone()) {
-                    to_bank = if bank.owner == from_bank.owner {
-                        from_bank.clone()
-                    } else {
-                        bank.clone()
-                    };
-                    match to_bank.find_account(account) {
-                        Some(account) => {
-                            account.balance_cents += trans.amount_cents;
-                        }
-                        None => {
-                            return Err(anyhow::anyhow!(
-                                "Bank does not this account type - {}",
-                                account
-                            ));
-                        }
-                    }
-                } else {
-                    return Err(anyhow::anyhow!("Bank does not exist - {}", local_bank));
-                }
-            }
-            AccountRef::Foreign {
-                bank: username,
-                account,
-            } => {
-                if let Some(bank) = self.find_bank(username) {
-                    to_bank = if bank.owner == from_bank.owner {
-                        from_bank.clone()
-                    } else {
-                        bank.clone()
-                    };
-                    match to_bank.find_account(account) {
-                        Some(account) => {
-                            account.balance_cents += trans.amount_cents;
-                        }
-                        None => {
-                            return Err(anyhow::anyhow!(
-                                "Bank does not this account type - {}",
-                                account
-                            ));
-                        }
-                    }
-                } else {
-                    return Err(anyhow::anyhow!("Bank does not exist - {}", local_bank));
-                }
-            }
-        }
-
-        if from_bank.owner != to_bank.owner {
-            self.add_with_header(
-                LedgerHeader {
-                    id: header.id,
-                    signature: rand.next_u64(),
-                },
-                LedgerEntry::UpdateBank(from_bank),
+        // Check the signature on the request using the from bank account
+        let signature = from_bank.bank_secret.sign(&req.trans);
+        if signature != req.signature {
+            log::info!(
+                "Transfer-Invalid-Signature: expected={}, actual={}",
+                signature,
+                req.signature
             );
+            return Ok(ResponseTransfer::InvalidSignature);
         }
-        self.add_with_header(
-            LedgerHeader {
-                id: header.id,
-                signature: rand.next_u64(),
-            },
-            LedgerEntry::UpdateBank(to_bank),
-        );
 
-        self.add_with_header(
+        // Get the accounts
+        let from_acc = match from_bank.account(req.trans.from.account) {
+            Some(b) => b,
+            None => {
+                log::info!(
+                    "Transfer-Invalid-From-Account: {:?}",
+                    req.trans.from.account
+                );
+                return Ok(ResponseTransfer::InvalidAccount {
+                    bank_id: req.trans.from.bank.clone(),
+                    account: req.trans.from.account,
+                });
+            }
+        };
+        if to_bank.account(req.trans.to.account).is_none() {
+            log::info!("Transfer-Invalid-To-Account: {:?}", req.trans.to.account);
+            return Ok(ResponseTransfer::InvalidAccount {
+                bank_id: req.trans.to.bank.clone(),
+                account: req.trans.to.account,
+            });
+        };
+
+        // Check the source bank account has enough funds
+        if req.trans.amount_cents > from_acc.balance_cents {
+            log::info!("Transfer-Insufficient-Funds: {:?}", req.trans);
+            return Ok(ResponseTransfer::InsufficientFunds {
+                requested: req.trans.amount_cents,
+                available: from_acc.balance_cents,
+                bank_id: req.trans.to.bank.clone(),
+                account: req.trans.to.account,
+            });
+        }
+
+        // We renew the reference as it may be the same bank
+        let ledger = self.ledger_for(req.trans.from.bank.clone()).unwrap();
+        let mut new_bank = ledger.bank().unwrap().clone();
+
+        // First we attempt to add an entry for the source bank account
+        new_bank
+            .account_mut(req.trans.from.account)
+            .unwrap()
+            .balance_cents -= req.trans.amount_cents;
+        let new_entry = LedgerEntry::UpdateBank(new_bank.clone());
+        let signature = self
+            .banks
+            .get(&req.trans.from.bank)
+            .unwrap()
+            .bank_secret
+            .sign(&new_entry);
+        self.add(
+            new_bank.owner.clone(),
+            new_entry,
+            signature,
+            Some(&mut on_msg),
+        )?;
+
+        // We renew the reference as it may be the same bank
+        let ledger = self.ledger_for(req.trans.to.bank.clone()).unwrap();
+        let mut new_bank = ledger.bank().unwrap().clone();
+
+        // Now add it to the destination bank account
+        new_bank
+            .account_mut(req.trans.to.account)
+            .unwrap()
+            .balance_cents += req.trans.amount_cents;
+        let new_entry = LedgerEntry::UpdateBank(new_bank.clone());
+        let signature = self
+            .banks
+            .get(&req.trans.to.bank)
+            .unwrap()
+            .bank_secret
+            .sign(&new_entry);
+        self.add(
+            new_bank.owner.clone(),
+            new_entry,
+            signature,
+            Some(&mut on_msg),
+        )?;
+
+        // Now add transactions into the history
+        let ledger = self.ledger_mut_for(req.trans.from.bank.clone()).unwrap();
+        let entry = LedgerEntry::Transaction {
+            transaction: req.trans.clone(),
+        };
+        let header = LedgerBrokerHeader {
+            index: ledger.entries.len() as u64,
+            bank_id: req.trans.from.bank.clone(),
+            bank_signature: ledger.bank_secret.sign(&entry),
+        };
+        let msg = LedgerMessage {
+            broker_signature: ledger.broker_secret.sign(&entry),
             header,
-            LedgerEntry::Transfer {
-                local_bank,
-                transaction: trans,
-            },
-        );
-        Ok(())
-    }
+            entry,
+        };
+        on_msg(&msg);
+        ledger.entries.push(msg);
 
-    pub fn find_bank(&mut self, name: String) -> Option<Bank> {
-        self.entries
-            .values()
-            .rev()
-            .filter_map(|e| match e {
-                LedgerEntry::NewBank(bank) | LedgerEntry::UpdateBank(bank) => Some(bank),
-                _ => None,
-            })
-            .find(|b| b.owner == name)
-            .cloned()
+        // If they are different banks
+        if req.trans.from.bank != req.trans.to.bank {
+            let ledger = self.ledger_mut_for(req.trans.to.bank.clone()).unwrap();
+            let entry = LedgerEntry::Transaction {
+                transaction: req.trans.clone(),
+            };
+            let header = LedgerBrokerHeader {
+                index: ledger.entries.len() as u64,
+                bank_id: req.trans.to.bank.clone(),
+                bank_signature: ledger.bank_secret.sign(&entry),
+            };
+            let msg = LedgerMessage {
+                broker_signature: ledger.broker_secret.sign(&entry),
+                header,
+                entry,
+            };
+            on_msg(&msg);
+            ledger.entries.push(msg);
+        }
+
+        // There, the money is transferred!
+        Ok(ResponseTransfer::Transferred)
     }
 }

@@ -70,14 +70,19 @@ impl eframe::App for LocalApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Immutable Bank");
 
-            match self.mode {
-                Mode::NewAccount => self.render_create_account(ui, frame),
-                Mode::Login => self.render_login(ui, frame),
-                Mode::Summary => self.render_bank_summary(ui, frame),
-                Mode::MoveMoney => self.render_move_money(ui, frame),
-                Mode::SendMoney => self.render_send_money(ui, frame),
+            if self.pending.is_some() {
+                self.render_pending(ui, frame)
+            } else if self.dialog_visible {
+                self.render_dialog(ui);
+            } else {
+                match self.mode {
+                    Mode::NewAccount => self.render_create_account(ui, frame),
+                    Mode::Login => self.render_login(ui, frame),
+                    Mode::Summary => self.render_bank_summary(ui, frame),
+                    Mode::MoveMoney => self.render_move_money(ui, frame),
+                    Mode::SendMoney => self.render_send_money(ui, frame),
+                }
             }
-            self.render_dialog(ui);
 
             ui.separator();
 
@@ -100,16 +105,13 @@ impl eframe::App for LocalApp {
                         self.save_state(frame);
                     }
 
-                    #[cfg(debug_assertions)]
-                    {
-                        if ui.button("Reset").clicked() {
-                            *self = Self::default();
-                            self.init = true;
+                    if ui.button("Reset").clicked() {
+                        *self = Self::default();
+                        self.init = true;
 
-                            let _ = play_intro();
+                        let _ = play_intro();
 
-                            self.save_state(frame);
-                        }
+                        self.save_state(frame);
                     }
                 });
                 self.powered_by_egui_and_eframe(ui);

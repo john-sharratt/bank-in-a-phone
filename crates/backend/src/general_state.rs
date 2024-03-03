@@ -1,15 +1,17 @@
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashSet, ops::Deref, sync::Arc, time::Duration};
+use std::{ops::Deref, sync::Arc, time::Duration};
 
-use immutable_bank_model::{header::LedgerMessage, ledger::Ledger, ledger_type::LedgerEntry};
+use immutable_bank_model::{
+    ledger::{Ledger, LedgerForBank, LedgerMessage},
+    ledger_type::LedgerEntry,
+};
 use tokio::sync::{broadcast, Mutex, MutexGuard};
 
-use crate::opts::Opts;
+use crate::{opts::Opts, BROKER_SECRET};
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct GeneralStateInner {
-    pub existing_banks: HashSet<String>,
     pub ledger: Ledger,
 }
 
@@ -44,13 +46,22 @@ impl GeneralState {
 
         let mut inner = GeneralStateInner::default();
         for msg in msgs {
-            match &msg.entry {
-                LedgerEntry::NewBank(bank) | LedgerEntry::UpdateBank(bank) => {
-                    inner.existing_banks.insert(bank.owner.clone());
-                }
-                _ => {}
-            }
-            inner.ledger.entries.insert(msg.header, msg.entry);
+            let ledger = match &msg.entry {
+                LedgerEntry::NewBank { bank_secret, .. } => inner
+                    .ledger
+                    .banks
+                    .entry(msg.header.bank_id.clone())
+                    .or_insert_with(|| LedgerForBank {
+                        broker_secret: BROKER_SECRET.clone(),
+                        bank_secret: bank_secret.clone(),
+                        entries: Vec::new(),
+                    }),
+                _ => match inner.ledger.banks.get_mut(&msg.header.bank_id) {
+                    Some(l) => l,
+                    None => continue,
+                },
+            };
+            ledger.entries.push(msg);
         }
 
         let state = GeneralState {
@@ -77,23 +88,22 @@ impl GeneralState {
             // Copy the state
             let msgs = {
                 let guard = self.lock().await;
-                tracing::info!(
-                    "Saving general state to {:?} - entries.len={}",
-                    opts.data_path,
-                    guard.ledger.entries.len()
-                );
-                tokio::task::block_in_place(|| {
+                let entries = tokio::task::block_in_place(|| {
                     guard
                         .deref()
                         .ledger
-                        .entries
+                        .banks
                         .iter()
-                        .map(|(h, e)| LedgerMessage {
-                            header: h.clone(),
-                            entry: e.clone(),
-                        })
+                        .flat_map(|b| b.1.entries.iter())
+                        .cloned()
                         .collect::<Vec<_>>()
-                })
+                });
+                tracing::info!(
+                    "Saving general state to {:?} - entries.len={}",
+                    opts.data_path,
+                    entries.len()
+                );
+                entries
             };
 
             // Determine the staging location

@@ -1,12 +1,17 @@
 use egui::Ui;
+use immutable_bank_model::bank_id::BankId;
 
-use crate::{render::Mode, LocalApp};
+use crate::{render::Mode, state::local_app::{FocusOn, LocalSession}, LocalApp};
 
 impl LocalApp {
     pub fn login_bank(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
+        let bank_id = BankId::from(self.username.clone());
         let password_hash = self.compute_password_hash();
-        if let Some(bank) = self.banks.get_mut(&self.username) {
-            if bank.password_hash != password_hash {
+        if let Some(bank) = self.banks.get_mut(&bank_id) {
+            self.password.clear();
+            self.confirm_password.clear();
+            self.focus_on.replace(FocusOn::Password);
+            if bank.password != password_hash {
                 self.show_dialog(ui, "Forbidden", "Invalid username or password");
                 self.session.take();
                 return;
@@ -17,7 +22,8 @@ impl LocalApp {
             return;
         }
 
-        self.session.replace(self.username.clone());
+        self.session
+            .replace(LocalSession::new(self.username.clone()));
         self.mode = Mode::Summary;
 
         self.save_state(frame);

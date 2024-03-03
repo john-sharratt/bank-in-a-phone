@@ -1,17 +1,25 @@
-use immutable_bank_model::{account::AccountRef, header::LedgerMessage, ledger_type::LedgerEntry};
+use immutable_bank_model::{
+    ledger::{LedgerForBank, LedgerMessage},
+    ledger_type::LedgerEntry,
+    secret::LedgerSecret,
+};
 
 use crate::LocalApp;
 
 impl LocalApp {
     pub fn poll(&mut self) {
-        if self.last_reconnects != self.ws.reconnects() {
+        if self.session.is_none() {
+            return;
+        }
+
+        if self.last_reconnects != self.session.as_mut().unwrap().ws.reconnects() {
             if let Err(err) = self.replay() {
                 log::warn!("Failed to replay local ledger - {}", err);
             }
-            self.last_reconnects = self.ws.reconnects();
+            self.last_reconnects = self.session.as_mut().unwrap().ws.reconnects();
         }
 
-        while let Some(msg) = self.ws.try_recv() {
+        while let Some(msg) = self.session.as_mut().unwrap().ws.try_recv() {
             let msg: LedgerMessage = match bincode::deserialize(&msg) {
                 Ok(e) => e,
                 Err(err) => {
@@ -20,56 +28,43 @@ impl LocalApp {
                 }
             };
 
-            if self.ledger.entries.contains_key(&msg.header) {
-                log::debug!("Duplicate message {:?}", msg.header);
+            // Find the ledger for this message
+            if let LedgerEntry::NewBank { bank_secret, .. } = &msg.entry {
+                if self.ledger.banks.contains_key(&msg.header.bank_id) == false {
+                    self.ledger
+                        .banks
+                        .entry(msg.header.bank_id.clone())
+                        .or_insert_with(|| LedgerForBank {
+                            broker_secret: LedgerSecret::new(),
+                            bank_secret: bank_secret.clone(),
+                            entries: Vec::new(),
+                        });
+                }
+            }
+            let ledger = match self.ledger.ledger_mut_for(msg.header.bank_id.clone()) {
+                Some(ledger) => ledger,
+                None => {
+                    log::debug!("Missing bank for message {:?}", msg.entry);
+                    continue;
+                }
+            };
+
+            // Validate the bank signature
+            let signature = ledger.bank_secret.sign(&msg.entry);
+            if signature != msg.header.bank_signature {
+                log::debug!("Invalid signature for message {:?}", msg.header);
                 continue;
             }
 
-            match &msg.entry {
-                LedgerEntry::NewBank(bank) | LedgerEntry::UpdateBank(bank) => {
-                    if let Some(b) = self.banks.get_mut(&bank.owner) {
-                        log::info!("Local bank ({}) updated", bank.owner);
-                        b.bank = bank.clone();
-                    } else {
-                        log::info!("Foreign bank ({}) updated", bank.owner);
-                        continue;
-                    }
-                }
-                LedgerEntry::Transfer {
-                    transaction,
-                    local_bank,
-                } => {
-                    let is_local = if self.banks.contains_key(local_bank) {
-                        true
-                    } else if let AccountRef::Foreign { bank, .. } = &transaction.from {
-                        self.banks.contains_key(bank)
-                    } else if let AccountRef::Foreign { bank, .. } = &transaction.to {
-                        self.banks.contains_key(bank)
-                    } else {
-                        false
-                    };
-                    if is_local {
-                        log::info!("Money Transfer {}->{}", transaction.from, transaction.to);
-                    } else {
-                        log::info!(
-                            "Foreign Money Transfer {}->{}",
-                            transaction.from,
-                            transaction.to
-                        );
-                        continue;
-                    }
-                }
-                LedgerEntry::Error(err) => {
-                    if Some(msg.header) == self.pending {
-                        log::info!("Ledger Error - {}", err);
-                    } else {
-                        log::info!("Foreign Ledger Error - {}", err);
-                        continue;
-                    }
-                }
+            // Add it to the ledger, unless it already exists
+            if msg.header.index < ledger.entries.len() as u64 {
+                log::debug!("Duplicate message {:?}", msg.header);
+            } else if ledger.entries.len() as u64 == msg.header.index {
+                log::debug!("Received message {:?}", msg);
+                ledger.entries.push(msg);
+            } else {
+                log::debug!("Split brain {:?}", msg.header);
             }
-
-            self.ledger.entries.insert(msg.header, msg.entry);
         }
     }
 }

@@ -1,15 +1,19 @@
 pub mod broadcast;
 pub mod general_state;
-pub mod http_handler;
+pub mod handlers;
+pub mod http_server;
 pub mod logger;
 pub mod opts;
 pub mod process;
-pub mod ws_handler;
 
 use clap::Parser;
+use immutable_bank_model::secret::LedgerSecret;
 use opts::Opts;
 
-use crate::{general_state::GeneralState, http_handler::http_server};
+use crate::{general_state::GeneralState, http_server::http_server};
+
+pub const BROKER_SECRET: LedgerSecret =
+    LedgerSecret::from_static([1u8; 32], [5u8; 32], [17u8; 32], [78u8; 32]);
 
 fn main() -> anyhow::Result<()> {
     let opts = Opts::parse();

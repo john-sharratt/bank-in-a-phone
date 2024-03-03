@@ -1,21 +1,44 @@
 use std::collections::HashMap;
 
 use crate::{render::Mode, ws::WebSocket};
+use bytes::Bytes;
 use immutable_bank_model::{
-    account::AccountType, bank::Bank, header::LedgerHeader, ledger::Ledger,
+    account::AccountType, bank::Bank, bank_id::BankId, ledger::Ledger, password_hash::PasswordHash,
+    secret::LedgerSecret,
 };
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FocusOn {
     Username,
+    Password,
     Amount,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct BankAndPassword {
-    pub bank: Bank,
-    pub password_hash: String,
+pub struct BankWithSecrets {
+    pub bank_id: BankId,
+    pub password: PasswordHash,
+    pub secret: LedgerSecret,
+}
+
+#[derive(Debug)]
+pub struct LocalSession {
+    pub bank_id: BankId,
+    pub ws: WebSocket,
+}
+
+impl LocalSession {
+    pub fn new<ID>(bank_id: ID) -> Self
+    where
+        ID: Into<BankId>,
+    {
+        let bank_id: BankId = bank_id.into();
+        Self {
+            bank_id: bank_id.clone(),
+            ws: WebSocket::new(bank_id),
+        }
+    }
 }
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -28,28 +51,33 @@ pub struct LocalApp {
     pub mode: Mode,
     pub focus_on: Option<FocusOn>,
 
-    pub banks: HashMap<String, BankAndPassword>,
+    pub banks: HashMap<BankId, BankWithSecrets>,
 
-    pub session: Option<String>,
+    #[serde(skip, default)]
+    pub session: Option<LocalSession>,
     pub ledger: Ledger,
 
     #[serde(skip, default)]
     pub last_reconnects: u64,
 
     #[serde(skip, default)]
-    pub ws: WebSocket,
-    pub pending: Option<LedgerHeader>,
+    pub pending: Option<std::sync::mpsc::Receiver<anyhow::Result<Bytes>>>,
+    #[serde(skip, default)]
+    pub pending_callback: Option<
+        Box<dyn FnOnce(Bytes, &mut LocalApp, &mut eframe::Frame) -> anyhow::Result<()> + 'static>,
+    >,
 
     #[serde(skip, default)]
     pub init: bool,
 
     pub from_account: AccountType,
     pub to_account: AccountType,
-    pub to_user: String,
+    pub to_bank: String,
     pub transfer_amount: u64,
     pub description: String,
 
     // Shows a dialog box on top of all the menus
+    #[serde(skip, default)]
     pub dialog_visible: bool,
     // Title of the dialog box to be displayed
     pub dialog_title: String,
@@ -58,14 +86,19 @@ pub struct LocalApp {
 }
 
 impl LocalApp {
-    pub fn bank(&self) -> Option<&Bank> {
-        let session = self.session.as_ref()?;
-        self.banks.get(session).map(|b| &b.bank)
+    pub fn bank_with_secrets(&self) -> Option<&BankWithSecrets> {
+        let bank_id = self.session.as_ref()?.bank_id.clone();
+        self.banks.get(&bank_id)
     }
 
-    pub fn bank_mut(&mut self) -> Option<&mut Bank> {
-        let session = self.session.as_ref()?;
-        self.banks.get_mut(session).map(|b| &mut b.bank)
+    pub fn bank_with_secrets_mut(&mut self) -> Option<&mut BankWithSecrets> {
+        let bank_id = self.session.as_ref()?.bank_id.clone();
+        self.banks.get_mut(&bank_id)
+    }
+
+    pub fn bank(&self) -> Option<&Bank> {
+        let bank_id = self.session.as_ref()?.bank_id.clone();
+        self.ledger.bank(bank_id)
     }
 }
 
@@ -81,15 +114,15 @@ impl Default for LocalApp {
             banks: Default::default(),
             session: None,
             ledger: Ledger::default(),
-            ws: WebSocket::default(),
             pending: None,
+            pending_callback: None,
 
             init: false,
             last_reconnects: 0,
 
             from_account: AccountType::Wallet,
             to_account: AccountType::Savings,
-            to_user: Default::default(),
+            to_bank: Default::default(),
             transfer_amount: 0,
             description: Default::default(),
 

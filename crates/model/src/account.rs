@@ -2,6 +2,8 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
+use crate::bank_id::BankId;
+
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AccountType {
     Wallet,
@@ -38,20 +40,14 @@ impl Display for AccountType {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub enum AccountRef {
-    Local { account: AccountType },
-    Foreign { bank: String, account: AccountType },
+pub struct AccountRef {
+    pub bank: BankId,
+    pub account: AccountType,
 }
 
 impl Display for AccountRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AccountRef::Local { account } => write!(f, "{account}"),
-            AccountRef::Foreign { bank, account } if *account == AccountType::Wallet => {
-                write!(f, "{bank}")
-            }
-            AccountRef::Foreign { bank, account } => write!(f, "{account}({bank})"),
-        }
+        write!(f, "{}({})", self.bank, self.account)
     }
 }
 

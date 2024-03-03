@@ -7,10 +7,6 @@ use super::Mode;
 
 impl LocalApp {
     pub fn render_move_money(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
-        self.try_finish(ui, |app| {
-            app.mode = Mode::Summary;
-        });
-
         let mut is_open = true;
         let mut should_transfer = false;
         egui::Window::new("Move Money")
@@ -20,12 +16,13 @@ impl LocalApp {
             .collapsible(false)
             .open(&mut is_open)
             .show(ui.ctx(), |ui| {
-                let mut enter_pressed = ui.ctx().input_mut(|input| input.key_pressed(Key::Enter));
-
-                let mut focus_to = false;
-                let mut focus_transfer = false;
-
                 ui.add_enabled_ui(self.pending.is_none(), |ui| {
+                    let mut enter_pressed =
+                        ui.ctx().input_mut(|input| input.key_pressed(Key::Enter));
+
+                    let mut focus_to = false;
+                    let mut focus_transfer = false;
+
                     ui.horizontal(|ui| {
                         let max = self
                             .bank()

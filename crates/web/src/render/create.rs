@@ -30,113 +30,112 @@ impl LocalApp {
     }
 
     pub fn render_create_account(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
-        self.try_finish(ui, |app| {
-            app.mode = Mode::Summary;
-        });
-
         egui::Window::new("New Account")
             .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
             .default_size(Vec2::new(200.0, 200.0))
             .resizable(false)
             .collapsible(false)
             .show(ui.ctx(), |ui| {
-                ui.add_space(5.0);
+                ui.add_enabled_ui(self.pending.is_none(), |ui| {
+                    ui.add_space(5.0);
 
-                let mut enter_pressed = ui.ctx().input_mut(|input| input.key_pressed(Key::Enter));
+                    let mut enter_pressed =
+                        ui.ctx().input_mut(|input| input.key_pressed(Key::Enter));
 
-                let mut focus_password = false;
-                let mut focus_confirm_password = false;
+                    let mut focus_password = false;
+                    let mut focus_confirm_password = false;
 
-                ui.horizontal(|ui| {
-                    ui.label("Bank Name: ");
+                    ui.horizontal(|ui| {
+                        ui.label("Bank Name: ");
 
-                    let is_ok = is_username_ok(self);
-                    let res = TextEdit::singleline(&mut self.username)
-                        .text_color(if is_ok {
-                            Color32::GREEN
-                        } else {
-                            Color32::LIGHT_RED
-                        })
-                        .ui(ui);
+                        let is_ok = is_username_ok(self);
+                        let res = TextEdit::singleline(&mut self.username)
+                            .text_color(if is_ok {
+                                Color32::GREEN
+                            } else {
+                                Color32::LIGHT_RED
+                            })
+                            .ui(ui);
 
-                    if matches!(self.focus_on, Some(FocusOn::Username)) {
-                        res.request_focus();
-                        self.focus_on.take();
-                        self.save_state(frame);
-                    }
+                        if matches!(self.focus_on, Some(FocusOn::Username)) {
+                            res.request_focus();
+                            self.focus_on.take();
+                            self.save_state(frame);
+                        }
 
-                    if enter_pressed && res.lost_focus() {
-                        enter_pressed = false;
-                        focus_password = true;
-                    }
-                });
+                        if enter_pressed && res.lost_focus() {
+                            enter_pressed = false;
+                            focus_password = true;
+                        }
+                    });
 
-                ui.horizontal(|ui| {
-                    ui.label("Password: ");
+                    ui.horizontal(|ui| {
+                        ui.label("Password: ");
 
-                    let is_ok = is_password_ok(self);
-                    let res = TextEdit::singleline(&mut self.password)
-                        .password(true)
-                        .text_color(if is_ok {
-                            Color32::GREEN
-                        } else {
-                            Color32::LIGHT_RED
-                        })
-                        .ui(ui);
+                        let is_ok = is_password_ok(self);
+                        let res = TextEdit::singleline(&mut self.password)
+                            .password(true)
+                            .text_color(if is_ok {
+                                Color32::GREEN
+                            } else {
+                                Color32::LIGHT_RED
+                            })
+                            .ui(ui);
 
-                    if focus_password {
-                        res.request_focus();
-                    }
+                        if focus_password {
+                            res.request_focus();
+                        }
 
-                    if enter_pressed && res.lost_focus() {
-                        enter_pressed = false;
-                        focus_confirm_password = true;
-                    }
-                });
+                        if enter_pressed && res.lost_focus() {
+                            enter_pressed = false;
+                            focus_confirm_password = true;
+                        }
+                    });
 
-                ui.horizontal(|ui| {
-                    ui.label("Confirm: ");
+                    ui.horizontal(|ui| {
+                        ui.label("Confirm: ");
 
-                    let is_ok = is_confirm_password_ok(self);
-                    let res = TextEdit::singleline(&mut self.confirm_password)
-                        .password(true)
-                        .text_color(if is_ok {
-                            Color32::GREEN
-                        } else {
-                            Color32::LIGHT_RED
-                        })
-                        .ui(ui);
+                        let is_ok = is_confirm_password_ok(self);
+                        let res = TextEdit::singleline(&mut self.confirm_password)
+                            .password(true)
+                            .text_color(if is_ok {
+                                Color32::GREEN
+                            } else {
+                                Color32::LIGHT_RED
+                            })
+                            .ui(ui);
 
-                    if focus_confirm_password {
-                        res.request_focus();
-                    }
+                        if focus_confirm_password {
+                            res.request_focus();
+                        }
 
-                    if enter_pressed && res.lost_focus() {
-                        enter_pressed = false;
-                        self.create(ui, frame);
-                    }
-                });
+                        if enter_pressed && res.lost_focus() {
+                            enter_pressed = false;
+                            self.create(ui, frame);
+                        }
+                    });
 
-                ui.add_space(5.0);
+                    ui.add_space(5.0);
 
-                ui.horizontal(|ui| {
-                    if ui
-                        .add_sized(Vec2::new(100.0, 20.0), egui::Button::new("Create"))
-                        .clicked()
-                    {
-                        self.create(ui, frame);
-                    }
+                    ui.horizontal(|ui| {
+                        if ui
+                            .add_sized(Vec2::new(100.0, 20.0), egui::Button::new("Create"))
+                            .clicked()
+                        {
+                            self.create(ui, frame);
+                        }
 
-                    if ui
-                        .add_sized(Vec2::new(100.0, 20.0), egui::Button::new("Back"))
-                        .clicked()
-                    {
-                        self.username = Default::default();
-                        self.password = Default::default();
-                        self.confirm_password = Default::default();
-                        self.mode = Mode::Login;
-                        self.focus_on.replace(FocusOn::Username);
-                    }
+                        if ui
+                            .add_sized(Vec2::new(100.0, 20.0), egui::Button::new("Back"))
+                            .clicked()
+                        {
+                            self.username = Default::default();
+                            self.password = Default::default();
+                            self.confirm_password = Default::default();
+                            self.mode = Mode::Login;
+                            self.focus_on.replace(FocusOn::Username);
+                        }
+                    });
                 });
             });
     }

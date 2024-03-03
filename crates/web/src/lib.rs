@@ -8,4 +8,5 @@ pub mod sleep;
 pub mod process;
 pub mod sound;
 pub mod init;
+pub mod reqwest;
 pub use state::local_app::LocalApp;

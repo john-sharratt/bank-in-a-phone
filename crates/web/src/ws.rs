@@ -2,6 +2,7 @@
 use futures::stream::StreamExt;
 use futures::FutureExt;
 use futures::SinkExt;
+use immutable_bank_model::bank_id::BankId;
 use pharos::*;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
@@ -16,20 +17,15 @@ use {wasm_bindgen::UnwrapThrowExt, wasm_bindgen_futures::spawn_local, ws_stream_
 
 use crate::sleep;
 
+#[derive(Debug)]
 pub struct WebSocket {
     reconnects: Arc<AtomicU64>,
     tx: futures::channel::mpsc::UnboundedSender<Vec<u8>>,
     rx: mpsc::Receiver<Vec<u8>>,
 }
 
-impl Default for WebSocket {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl WebSocket {
-    pub fn new() -> Self {
+    pub fn new(bank_id: BankId) -> Self {
         let reconnects = Arc::new(AtomicU64::new(0));
         let (tx1, mut rx1) = futures::channel::mpsc::unbounded();
         let (tx2, rx2) = mpsc::channel();
@@ -48,13 +44,13 @@ impl WebSocket {
                 };
 
                 let uri = if cfg!(debug_assertions) {
-                    "ws://localhost:8000"
+                    format!("ws://localhost:8000/bank/{}", bank_id.as_str())
                 } else {
-                    "wss://immutable-bank.com:443"
+                    format!("wss://immutable-bank.com:443/bank/{}", bank_id.as_str())
                 };
 
                 log::info!("connecting to {}", uri);
-                let (mut ws, mut wsio) = match WsMeta::connect(uri, None).await {
+                let (mut ws, mut wsio) = match WsMeta::connect(uri.clone(), None).await {
                     Ok(a) => a,
                     Err(err) => {
                         do_err(err).await;
