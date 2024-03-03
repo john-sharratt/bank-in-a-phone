@@ -69,6 +69,7 @@ impl LocalApp {
                             .ui(ui);
 
                         let res = egui::TextEdit::singleline(&mut self.to_bank).ui(ui);
+                        self.to_bank = self.to_bank.to_lowercase();
 
                         if focus_to {
                             if !is_mobile(ui) {
