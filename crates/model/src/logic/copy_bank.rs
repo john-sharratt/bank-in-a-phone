@@ -8,7 +8,10 @@ use crate::{
     ledger_type::LedgerEntry,
     password_hash::PasswordHash,
     requests::{copy_bank::RequestCopyBank, new_bank::RequestNewBank},
-    responses::{copy_bank::ResponseCopyBank, create_bank::ResponseCreateBank},
+    responses::{
+        copy_bank::{Copied, ResponseCopyBank},
+        create_bank::ResponseCreateBank,
+    },
     secret::LedgerSecret,
     transaction::Transaction,
 };
@@ -35,13 +38,14 @@ impl Ledger {
         // Check the password
         if bank.password != req.password {
             return Ok(ResponseCopyBank::Denied {
-                err_msg: format!("Invalid bank or password."),
+                err_msg: format!("Invalid password."),
             });
         }
 
         // Send the ledger!
-        Ok(ResponseCopyBank::Copied {
-            ledger: ledger.clone(),
-        })
+        Ok(ResponseCopyBank::Copied(Copied {
+            bank_secret: ledger.bank_secret.clone(),
+            entries: ledger.entries.values().cloned().collect(),
+        }))
     }
 }

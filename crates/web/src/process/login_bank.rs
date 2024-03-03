@@ -1,6 +1,10 @@
 use egui::Ui;
 use immutable_bank_model::{
-    bank_id::BankId, requests::copy_bank::RequestCopyBank, responses::copy_bank::ResponseCopyBank,
+    bank_id::BankId,
+    ledger::LedgerForBank,
+    requests::copy_bank::RequestCopyBank,
+    responses::copy_bank::{Copied, ResponseCopyBank},
+    secret::LedgerSecret,
 };
 
 use crate::{
@@ -31,16 +35,29 @@ impl LocalApp {
                 },
                 move |res: ResponseCopyBank, app: &mut LocalApp, frame: &mut eframe::Frame| {
                     match res {
-                        ResponseCopyBank::Copied { ledger } => {
+                        ResponseCopyBank::Copied(Copied {
+                            bank_secret,
+                            entries,
+                        }) => {
                             app.banks.insert(
                                 bank_id.clone(),
                                 BankWithSecrets {
                                     bank_id: bank_id.clone(),
-                                    secret: ledger.bank_secret.clone(),
+                                    secret: bank_secret.clone(),
                                     password: password_hash,
                                 },
                             );
-                            app.ledger.banks.insert(bank_id.clone(), ledger);
+                            app.ledger.banks.insert(
+                                bank_id.clone(),
+                                LedgerForBank {
+                                    broker_secret: LedgerSecret::new(),
+                                    bank_secret: bank_secret,
+                                    entries: entries
+                                        .into_iter()
+                                        .map(|msg| (msg.broker_signature.clone(), msg))
+                                        .collect(),
+                                },
+                            );
                             app.session.replace(LocalSession::new(bank_id.clone()));
                             app.mode = Mode::Summary;
                             app.save_state(frame);
